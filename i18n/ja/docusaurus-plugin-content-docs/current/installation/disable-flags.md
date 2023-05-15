@@ -1,32 +1,29 @@
 ---
-title: "Disable Components Flags"
+title: "コンポーネントを無効化するフラグ"
 weight: 60
 ---
 
-Starting the K3s server with `--cluster-init` will run all control plane components, including the api server, controller manager, scheduler, and etcd. However, you can run server nodes with certain components and exclude others; the following sections will explain how to do that.
+cluster-init`でK3sサーバを起動すると、apiサーバ、コントローラマネージャ、スケジューラ、etcdを含む全てのコントロールプレーンコンポーネントが実行されます。しかし、特定のコンポーネントを搭載したサーバノードを実行し、他のコンポーネントを除外することができます。以下のセクションでは、その方法を説明します。
 
-## ETCD Only Nodes
+## ETCDのみのノード
 
-This document assumes you run K3s server with embedded etcd by passing `--cluster-init` flag to the server process.
+このドキュメントは、サーバープロセスに `--cluster-init` フラグを渡すことで、etcd を組み込んだ K3s サーバーを実行することを前提としています。
 
-To run a K3s server with only etcd components you can pass `--disable-apiserver --disable-controller-manager --disable-scheduler` flags to k3s, this will result in running a server node with only etcd, for example to run K3s server with those flags:
-
+etcdコンポーネントのみでK3sサーバを実行するには、`--disable-apiserver --disable-controller-manager --disable-scheduler` フラグをk3sに渡せば、etcdのみでサーバノードを実行することになります。：
 ```bash
 curl -fL https://get.k3s.io | sh -s - server --cluster-init --disable-apiserver --disable-controller-manager --disable-scheduler
 ```
 
-You can join other nodes to the cluster normally after that.
+この後、他のノードを正常にクラスタに参加させることができます。
 
-## Disable ETCD
+## ETCD を無効化する
 
-You can also disable etcd from a server node and this will result in a k3s server running control components other than etcd, that can be accomplished by running k3s server with flag `--disable-etcd` for example to join another node with only control components to the etcd node created in the previous section:
-
+これは、例えばフラグ `--disable-etcd` でk3sサーバを実行し、制御コンポーネントのみを持つ別のノードを前のセクションで作成したetcdノードに結合することで達成できます：
 ```bash
 curl -fL https://get.k3s.io | sh -s - server --token <token> --disable-etcd --server https://<etcd-only-node>:6443 
 ```
 
-The end result will be a two nodes one of them is etcd only node and the other one is controlplane only node, if you check the node list you should see something like the following:
-
+最終的には2つのノードができ、そのうちの1つはetcd専用ノード、もう1つはcontrolplane専用ノードとなり、ノードリストを確認すると、以下のように表示されるはずです：
 ```bash
 $ kubectl get nodes
 NAME              STATUS   ROLES                       AGE     VERSION
@@ -34,18 +31,17 @@ ip-172-31-13-32   Ready    etcd                        5h39m   v1.20.4+k3s1
 ip-172-31-14-69   Ready    control-plane,master        5h39m   v1.20.4+k3s1
 ```
 
-Note that you can run `kubectl` commands only on the k3s server that has the api running, and you can't run `kubectl` commands on etcd only nodes.
+なお、`kubectl`コマンドはapiが動作しているk3sサーバーでのみ実行可能で、etcdのみのノードでは`kubectl`コマンドを実行できない。
 
 
-### Re-enabling control components
+### コントロールコンポーネントの再有効化
 
-In both cases you can re-enable any component that you already disabled simply by removing the corresponding flag that disables them, so for example if you want to revert the etcd only node back to a full k3s server with all components you can just remove the following 3 flags `--disable-apiserver --disable-controller-manager --disable-scheduler`, so in our example to revert back node `ip-172-31-13-32` to a full k3s server you can just re-run the curl command without the disable flags:
+例えば、etcdのみのノードを全てのコンポーネントを含む完全なk3sサーバーに戻したい場合、次の3つのフラグを削除するだけです。`--disable-apiserver --disable-controller-manager --disable-scheduler`。 この例では、ノード `ip-172-31-13-32` を完全なk3sサーバーに戻すには無効化フラグなしでcurlコマンドを再度実行するだけです：
 ```bash
 curl -fL https://get.k3s.io | sh -s - server --cluster-init
 ``` 
 
-you will notice that all components started again and you can run kubectl commands again:
-
+すべてのコンポーネントが再び起動し、kubectlコマンドを再び実行できることがわかります：
 ```bash
 $ kubectl get nodes
 NAME              STATUS   ROLES                       AGE     VERSION
@@ -53,12 +49,11 @@ ip-172-31-13-32   Ready    control-plane,etcd,master   5h45m   v1.20.4+k3s1
 ip-172-31-14-69   Ready    control-plane,master        5h45m   v1.20.4+k3s1
 ```
 
-Notice that role labels has been re-added to the node `ip-172-31-13-32` with the correct labels (control-plane,etcd,master).
+ノード `ip-172-31-13-32` にロールラベルが正しいラベル（control-plane,etcd,master）で再追加されたことに注意してください。
 
-## Add disable flags using the config file
+## 設定ファイルを使用して無効化フラグを追加します。
 
-In any of the previous situations you can use the config file instead of running the curl commands with the associated flags, for example to run an etcd only node you can add the following options to the `/etc/rancher/k3s/config.yaml` file:
-
+例えば、etcdのみのノードを実行するには、`/etc/rancher/k3s/config.yaml` ファイルに以下のオプションを追加します：
 ```yaml
 ---
 disable-apiserver: true
@@ -66,15 +61,15 @@ disable-controller-manager: true
 disable-scheduler: true
 cluster-init: true
 ```
-and then start K3s using the curl command without any arguments:
 
+引数なしでcurlコマンドでK3sを起動します：
 ```bash
 curl -fL https://get.k3s.io | sh -
 ```
-## Disable components using .skip files
+## .skip ファイルを使用してコンポーネントを無効化する
 
-For any yaml file under `/var/lib/rancher/k3s/server/manifests` (coredns, traefik, local-storeage, etc.) you can add a `.skip` file which will cause K3s to not apply the associated yaml file.
-For example, adding `traefik.yaml.skip` in the manifests directory will cause K3s to skip `traefik.yaml`.
+`/var/lib/rancher/k3s/server/manifests`の下にある任意のyamlファイル（coredns、traefik、local-storeageなど）に対して、K3sに関連yamlファイルを適用しないようにするための `.skip` ファイルを追加することができます。
+例えば、manifestsディレクトリに `traefik.yaml.skip` を追加すると、K3sは `traefik.yaml` をスキップするようになります。
 ```bash
 $ ls /var/lib/rancher/k3s/server/manifests
 ccm.yaml      local-storage.yaml  rolebindings.yaml  traefik.yaml.skip

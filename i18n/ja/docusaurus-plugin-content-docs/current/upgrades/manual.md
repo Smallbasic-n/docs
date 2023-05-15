@@ -1,79 +1,77 @@
 ---
-title: "Manual Upgrades"
+title: "手動でのアップグレード"
 weight: 10
 ---
 
-You can upgrade K3s by using the installation script, or by manually installing the binary of the desired version.
+K3s をアップグレードするには、インストール スクリプトを使用するか、目的のバージョンのバイナリを手動でインストールします。
 
 :::note
-When upgrading, upgrade server nodes first one at a time, then any agent nodes.
+アップグレードするときは、最初にサーバー ノードを 1 つずつアップグレードし、次にエージェント ノードをアップグレードします。
 :::
 
-### Release Channels
+### リリースチャンネル
 
-Upgrades performed via the installation script or using our [automated upgrades](automated.md) feature can be tied to different release channels. The following channels are available:
+インストール スクリプトまたは [automated upgrades](automated.md) 機能を使用して実行されるアップグレードは、さまざまなリリース チャネルに関連付けることができます。 次のチャネルが利用可能です。
 
-| Channel        |   Description  |
-|----------------|---------|
-| stable         | (Default) Stable is recommended for production environments. These releases have been through a period of community hardening. |
-| latest         | Latest is recommended for trying out the latest features.  These releases have not yet been through a period of community hardening. |
-| v1.26 (example)| There is a release channel tied to each Kubernetes minor version, including versions that are end-of-life. These channels will select the latest patch available, not necessarily a stable release. |
+| チャンネル | 説明 |
+|---|---------------------|
+| 安定 | (デフォルト) 本番環境には安定版が推奨されます。 これらのリリースは、コミュニティ強化の期間を経ています。 | |
+| 最新 | 最新の機能を試すには、Latest をお勧めします。 これらのリリースは、コミュニティ強化の期間をまだ経ていません。 | |
+| v1.26 (例)| サポート終了のバージョンを含む、各 Kubernetes マイナー バージョンに関連付けられたリリース チャネルがあります。 これらのチャネルは、必ずしも安定したリリースではなく、利用可能な最新のパッチを選択します。 | |
 
-For an exhaustive and up-to-date list of channels, you can visit the [k3s channel service API](https://update.k3s.io/v1-release/channels). For more technical details on how channels work, you see the [channelserver project](https://github.com/rancher/channelserver).
+チャネルの完全な最新リストについては、[k3s チャネル サービス API](https://update.k3s.io/v1-release/channels) にアクセスしてください。 チャネルの仕組みに関する技術的な詳細については、[channelserver プロジェクト](https://github.com/rancher/channelserver) を参照してください。
 
-### Upgrade K3s Using the Installation Script
+### インストール スクリプトを使用して K3 をアップグレードする
 
-To upgrade K3s from an older version you can re-run the installation script using the same flags, for example:
-
+K3s を古いバージョンからアップグレードするには、同じフラグを使用してインストール スクリプトを再実行できます。次に例を示します。
 ```sh
 curl -sfL https://get.k3s.io | sh -
 ```
-This will upgrade to a newer version in the stable channel by default.
+これにより、デフォルトで安定版チャンネルの新しいバージョンにアップグレードされます。
 
-If you want to upgrade to a newer version in a specific channel (such as latest) you can specify the channel:
+特定のチャネル (最新など) で新しいバージョンにアップグレードする場合は、チャネルを指定できます。
 ```sh
 curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL=latest sh -
 ```
 
-If you want to upgrade to a specific version you can run the following command:
-
+特定のバージョンにアップグレードする場合は、次のコマンドを実行できます。
 ```sh
 curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=vX.Y.Z-rc1 sh -
 ```
 
-### Manually Upgrade K3s Using the Binary
+### バイナリを使用して K3 を手動でアップグレードする
 
-Or to manually upgrade K3s:
+または、K3 を手動でアップグレードするには:
 
-1. Download the desired version of the K3s binary from [releases](https://github.com/k3s-io/k3s/releases)
-2. Copy the downloaded binary to `/usr/local/bin/k3s` (or your desired location)
-3. Stop the old k3s binary
-4. Launch the new k3s binary
+1. [リリース](https://github.com/k3s-io/k3s/releases) から目的のバージョンの K3s バイナリをダウンロードします。
+2. ダウンロードしたバイナリを /usr/local/bin/k3s (または任意の場所) にコピーします。
+3. 古い k3s バイナリを停止します
+4. 新しい k3s バイナリを起動します
 
-### Restarting K3s
+### K3 の再起動
 
-Restarting K3s is supported by the installation script for systemd and OpenRC.
+K3s の再起動は、systemd および OpenRC のインストール スクリプトでサポートされています。
 
 **systemd**
 
-To restart servers manually:
+サーバーを手動で再起動するには:
 ```sh
 sudo systemctl restart k3s
 ```
 
-To restart agents manually:
+エージェントを手動で再起動するには:
 ```sh
 sudo systemctl restart k3s-agent
 ```
 
 **OpenRC**
 
-To restart servers manually:
+サーバーを手動で再起動するには:
 ```sh
 sudo service k3s restart
 ```
 
-To restart agents manually:
+エージェントを手動で再起動するには:
 ```sh
 sudo service k3s-agent restart
 ```

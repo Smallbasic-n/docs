@@ -1,29 +1,28 @@
 ---
-title: "Private Registry Configuration"
+title: "プライベートレジストリ設定"
 weight: 55
 ---
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-Containerd can be configured to connect to private registries and use them to pull private images on the node.
+Containerd は、プライベート レジストリに接続し、それらを使用してノード上のプライベート イメージをプルするように構成できます。
 
-Upon startup, K3s will check to see if a `registries.yaml` file exists at `/etc/rancher/k3s/` and instruct containerd to use any registries defined in the file. If you wish to use a private registry, then you will need to create this file as root on each node that will be using the registry.
+起動時に、K3s は「registries.yaml」ファイルが「/etc/rancher/k3s/」に存在するかどうかを確認し、ファイルで定義されているレジストリを使用するように containerd に指示します。 プライベート レジストリを使用する場合は、レジストリを使用する各ノードでルートとしてこのファイルを作成する必要があります。
 
-Note that server nodes are schedulable by default. If you have not tainted the server nodes and will be running workloads on them, please ensure you also create the `registries.yaml` file on each server as well.
+サーバーノードはデフォルトでスケジュール可能であることに注意してください。 サーバーノードを汚染しておらず、それらでワークロードを実行する場合は、各サーバーにも「registries.yaml」ファイルを作成してください。
 
-Configuration in containerd can be used to connect to a private registry with a TLS connection and with registries that enable authentication as well. The following section will explain the `registries.yaml` file and give different examples of using private registry configuration in K3s.
+containerd の構成を使用して、TLS 接続および認証を有効にするレジストリを使用してプライベート レジストリに接続できます。 次のセクションでは、「registries.yaml」ファイルについて説明し、K3s でプライベート レジストリ構成を使用するさまざまな例を示します。
 
-## Registries Configuration File
+## レジストリ設定ファイル
 
-The file consists of two main sections:
+このファイルは、次の 2 つの主要なセクションで構成されています。
 
-- mirrors
-- configs
+- mirror
+- config
 
-### Mirrors
+### ミラー
 
-Mirrors is a directive that defines the names and endpoints of the private registries, for example:
-
+Mirrors は、プライベート レジストリの名前とエンドポイントを定義するディレクティブです。次に例を示します。
 ```
 mirrors:
   mycustomreg.com:
@@ -31,14 +30,13 @@ mirrors:
       - "https://mycustomreg.com:5000"
 ```
 
-Each mirror must have a name and set of endpoints. When pulling an image from a registry, containerd will try these endpoint URLs one by one, and use the first working one.
+各ミラーには、名前と一連のエンドポイントが必要です。 レジストリからイメージをプルする場合、containerd はこれらのエンドポイント URL を 1 つずつ試し、最初に機能する URL を使用します。
 
-#### Rewrites
+#### 書き換え
 
-Each mirror can have a set of rewrites. Rewrites can change the tag of an image based on a regular expression. This is useful if the organization/project structure in the mirror registry is different to the upstream one.
+各ミラーには、一連の書き換えを含めることができます。 書き換えにより、正規表現に基づいて画像のタグを変更できます。 これは、ミラー レジストリの組織/プロジェクト構造が上流のものと異なる場合に役立ちます。
 
-For example, the following configuration would transparently pull the image `docker.io/rancher/coredns-coredns:1.6.3` from `registry.example.com:5000/mirrorproject/rancher-images/coredns-coredns:1.6.3`:
-
+たとえば、次の構成は、イメージ `docker.io/rancher/coredns-coredns:1.6.3` を `registry.example.com:5000/mirrorproject/rancher-images/coredns-coredns:1.6.3` から透過的にプルします。 :
 ```
 mirrors:
   docker.io:
@@ -48,37 +46,36 @@ mirrors:
       "^rancher/(.*)": "mirrorproject/rancher-images/$1"
 ```
 
-The image will still be stored under the original name so that a `crictl image ls` will show `docker.io/rancher/coredns-coredns:1.6.3` as available on the node, even though the image was pulled from the mirrored registry with a different name.
+イメージは引き続き元の名前で保存されるため、イメージがミラーリングからプルされた場合でも、「crictl image ls」はノードで利用可能な「docker.io/rancher/coredns-coredns:1.6.3」を示します。 別の名前のレジストリ。
 
-### Configs
+### 構成
 
-The `configs` section defines the TLS and credential configuration for each mirror. For each mirror you can define `auth` and/or `tls`. 
+「configs」セクションでは、各ミラーの TLS と資格情報の構成を定義します。 ミラーごとに、「auth」および/または「tls」を定義できます。
 
-The `tls` part consists of:
+`tls` 部分は次のもので構成されます。
 
-| Directive              | Description                                                                          |
-|------------------------|--------------------------------------------------------------------------------------|
-| `cert_file`            | The client certificate path that will be used to authenticate with the registry      |
-| `key_file`             | The client key path that will be used to authenticate with the registry              |
-| `ca_file`              | Defines the CA certificate path to be used to verify the registry's server cert file |
-| `insecure_skip_verify` | Boolean that defines if TLS verification should be skipped for the registry          |
+| ディレクティブ | 説明 |
+-----------------------|------------------------ -------------------------------------------------- ------------|
+| `cert_file` | レジストリでの認証に使用されるクライアント証明書のパス |
+| `key_file` | レジストリでの認証に使用されるクライアント キー パス |
+| `ca_file` | レジストリのサーバー証明書ファイルを検証するために使用する CA 証明書パスを定義します |
+| `insecure_skip_verify` | レジストリの TLS 検証をスキップするかどうかを定義するブール値 |
 
-The `auth` part consists of either username/password or authentication token:
+「auth」部分は、ユーザー名/パスワードまたは認証トークンのいずれかで構成されます。
 
-| Directive  | Description                                             |
-|------------|---------------------------------------------------------|
-| `username` | user name of the private registry basic auth            |
-| `password` | user password of the private registry basic auth        |
-| `auth`     | authentication token of the private registry basic auth |
+| ディレクティブ | 説明 |
+-----------|------------------------------------ ----------------------|
+| `username` | プライベート レジストリの基本認証のユーザー名 |
+| `password` | プライベート レジストリの基本認証のユーザー パスワード |
+| `auth` | プライベート レジストリ基本認証の認証トークン |
 
-Below are basic examples of using private registries in different modes:
+以下は、さまざまなモードでプライベート レジストリを使用する基本的な例です。
 
-### With TLS
+### TLS あり
 
-Below are examples showing how you may configure `/etc/rancher/k3s/registries.yaml` on each node when using TLS.
-
+以下は、TLS を使用する場合に各ノードで「/etc/rancher/k3s/registries.yaml」を構成する方法を示す例です。
 <Tabs>
-<TabItem value="With Authentication">
+<TabItem value="認証あり">
 
 ```yaml
 mirrors:
@@ -88,16 +85,16 @@ mirrors:
 configs:
   "mycustomreg:5000":
     auth:
-      username: xxxxxx # this is the registry username
-      password: xxxxxx # this is the registry password
+      username: xxxxxx # レジストリのユーザ名
+      password: xxxxxx # レジストリのパスワード
     tls:
-      cert_file: # path to the cert file used in the registry
-      key_file:  # path to the key file used in the registry
-      ca_file:   # path to the ca file used in the registry
+      cert_file: # certファイル
+      key_file:  # keyファイル
+      ca_file:   # caファイル
 ```
 
 </TabItem>
-<TabItem value="Without Authentication">
+<TabItem value="認証なし">
 
 ```yaml
 mirrors:
@@ -107,19 +104,18 @@ mirrors:
 configs:
   "mycustomreg:5000":
     tls:
-      cert_file: # path to the cert file used in the registry
-      key_file:  # path to the key file used in the registry
-      ca_file:   # path to the ca file used in the registry
+      cert_file: # certファイル
+      key_file:  # keyファイル
+      ca_file:   # caファイル
 ```
 </TabItem>
 </Tabs>
 
-### Without TLS
+### TLS なし
 
-Below are examples showing how you may configure `/etc/rancher/k3s/registries.yaml` on each node when _not_ using TLS.
-
+以下は、TLS を_使用しない_場合に各ノードで `/etc/rancher/k3s/registries.yaml` を構成する方法を示す例です。
 <Tabs>
-<TabItem value="With Authentication">
+<TabItem value="認証あり">
 
 ```yaml
 mirrors:
@@ -129,12 +125,12 @@ mirrors:
 configs:
   "mycustomreg:5000":
     auth:
-      username: xxxxxx # this is the registry username
-      password: xxxxxx # this is the registry password
+      username: xxxxxx # レジストリのユーザ名
+      password: xxxxxx # レジストリのパスワード
 ```
 
 </TabItem>
-<TabItem value="Without Authentication">
+<TabItem value="認証なし">
 
 ```yaml
 mirrors:
@@ -145,21 +141,21 @@ mirrors:
 </TabItem>
 </Tabs>
 
-> In case of no TLS communication, you need to specify `http://` for the endpoints, otherwise it will default to https.
+> TLS 通信がない場合は、エンドポイントに「http://」を指定する必要があります。指定しないと、デフォルトで https になります。
  
-In order for the registry changes to take effect, you need to restart K3s on each node.
+レジストリの変更を有効にするには、各ノードで K3 を再起動する必要があります。
 
-## Adding Images to the Private Registry
+## プライベート レジストリにイメージを追加する
 
-First, obtain the k3s-images.txt file from GitHub for the release you are working with.
-Pull the K3s images listed on the k3s-images.txt file from docker.io
+まず、使用しているリリースの GitHub から k3s-images.txt ファイルを取得します。
+k3s-images.txt ファイルにリストされている K3s イメージを docker.io からプルします。
 
-Example: `docker pull docker.io/rancher/coredns-coredns:1.6.3`
+例: `docker pull docker.io/rancher/coredns-coredns:1.6.3`
 
-Then, retag the images to the private registry.
+次に、イメージをプライベート レジストリに再タグ付けします。
 
-Example: `docker tag coredns-coredns:1.6.3 mycustomreg:5000/coredns-coredns`
+例: `docker tag coredns-coredns:1.6.3 mycustomreg:5000/coredns-coredns`
 
-Last, push the images to the private registry.
+最後に、イメージをプライベート レジストリにプッシュします。
 
-Example: `docker push mycustomreg.com:5000/coredns-coredns`
+例: `docker push mycustomreg.com:5000/coredns-coredns`

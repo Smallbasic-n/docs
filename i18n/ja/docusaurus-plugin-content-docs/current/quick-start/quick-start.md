@@ -1,38 +1,37 @@
 ---
-title: "Quick-Start Guide"
+title: "クイックスタートガイド"
 weight: 10
 ---
 
-This guide will help you quickly launch a cluster with default options. The [installation section](../installation/installation.md) covers in greater detail how K3s can be set up.
+このガイドは、デフォルト オプションを使用してクラスターをすばやく起動するのに役立ちます。 [インストール セクション](../installation/installation.md) では、K3 のセットアップ方法について詳しく説明しています。
 
-For information on how K3s components work together, refer to the [architecture section.](../architecture/architecture.md)
+K3s コンポーネントがどのように連携するかについては、[アーキテクチャ セクション](../architecture/architecture.md) を参照してください。
 
 :::note
-New to Kubernetes? The official Kubernetes docs already have some great tutorials outlining the basics [here](https://kubernetes.io/docs/tutorials/kubernetes-basics/).
+Kubernetes は初めてですか? 公式の Kubernetes ドキュメントには、[ここ](https://kubernetes.io/docs/tutorials/kubernetes-basics/) の基本を概説する優れたチュートリアルが既にいくつかあります。
 :::
 
-Install Script
+インストールスクリプト
 --------------
-K3s provides an installation script that is a convenient way to install it as a service on systemd or openrc based systems. This script is available at https://get.k3s.io. To install K3s using this method, just run:
+K3s は、systemd または openrc ベースのシステムにサービスとしてインストールするための便利な方法であるインストール スクリプトを提供します。 このスクリプトは https://get.k3s.io で入手できます。 この方法を使用して K3s をインストールするには、次を実行します。
 ```bash
 curl -sfL https://get.k3s.io | sh -
 ```
 
-After running this installation:
+このインストールを実行した後:
 
-* The K3s service will be configured to automatically restart after node reboots or if the process crashes or is killed
-* Additional utilities will be installed, including `kubectl`, `crictl`, `ctr`, `k3s-killall.sh`, and `k3s-uninstall.sh`
-* A [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) file will be written to `/etc/rancher/k3s/k3s.yaml` and the kubectl installed by K3s will automatically use it
+* K3s サービスは、ノードの再起動後、またはプロセスがクラッシュまたは強制終了された場合に自動的に再起動するように構成されます
+* `kubectl`、`crictl`、`ctr`、`k3s-killall.sh`、`k3s-uninstall.sh` などの追加ユーティリティがインストールされます。
+* [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) ファイルが `/etc/rancher/k3s/k3s.yaml` に書き込まれ、kubectl がインストールされます by K3s は自動的にそれを使用します
 
-A single-node server installation is a fully-functional Kubernetes cluster, including all the datastore, control-plane, kubelet, and container runtime components necessary to host workload pods. It is not necessary to add additional server or agents nodes, but you may want to do so to add additional capacity or redundancy to your cluster.
+単一ノード サーバーのインストールは、ワークロード ポッドをホストするために必要なすべてのデータストア、コントロール プレーン、kubelet、およびコンテナー ランタイム コンポーネントを含む、完全に機能する Kubernetes クラスターです。 サーバーやエージェントのノードを追加する必要はありませんが、クラスターに容量や冗長性を追加するために必要になる場合があります。
 
-To install additional agent nodes and add them to the cluster, run the installation script with the `K3S_URL` and `K3S_TOKEN` environment variables. Here is an example showing how to join an agent:
-
+追加のエージェント ノードをインストールしてクラスターに追加するには、「K3S_URL」および「K3S_TOKEN」環境変数を使用してインストール スクリプトを実行します。 エージェントに参加する方法を示す例を次に示します。
 ```bash
 curl -sfL https://get.k3s.io | K3S_URL=https://myserver:6443 K3S_TOKEN=mynodetoken sh -
 ```
-Setting the `K3S_URL` parameter causes the installer to configure K3s as an agent, instead of a server. The K3s agent will register with the K3s server listening at the supplied URL. The value to use for `K3S_TOKEN` is stored at `/var/lib/rancher/k3s/server/node-token` on your server node.
+「K3S_URL」パラメーターを設定すると、インストーラーは K3s をサーバーではなくエージェントとして構成します。 K3s エージェントは、指定された URL でリッスンしている K3s サーバーに登録します。 `K3S_TOKEN` に使用する値は、サーバー ノードの `/var/lib/rancher/k3s/server/node-token` に保存されます。
 
 :::note
-Each machine must have a unique hostname. If your machines do not have unique hostnames, pass the `K3S_NODE_NAME` environment variable and provide a value with a valid and unique hostname for each node.
+各マシンには一意のホスト名が必要です。 マシンに一意のホスト名がない場合は、「K3S_NODE_NAME」環境変数を渡し、各ノードに有効で一意のホスト名の値を指定してください。
 :::

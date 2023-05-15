@@ -1,19 +1,19 @@
 ---
-title: Uninstalling K3s
+title: K3sのアンインストール
 weight: 61
 ---
 
-If you installed K3s using the installation script, a script to uninstall K3s was generated during installation.
+インストール スクリプトを使用して K3s をインストールした場合、K3s をアンインストールするスクリプトがインストール中に生成されます。
 
-> Uninstalling K3s deletes the cluster data and all of the scripts. To restart the cluster with different installation options, re-run the installation script with different flags.
+> K3s をアンインストールすると、クラスター データとすべてのスクリプトが削除されます。 別のインストール オプションでクラスターを再起動するには、別のフラグを指定してインストール スクリプトを再実行します。
 
-To uninstall K3s from a server node, run:
+サーバー ノードから K3s をアンインストールするには、次のコマンドを実行します。
 
 ```bash
 /usr/local/bin/k3s-uninstall.sh
 ```
 
-To uninstall K3s from an agent node, run:
+エージェント ノードから K3s をアンインストールするには、次を実行します。
 
 ```bash
 /usr/local/bin/k3s-agent-uninstall.sh

@@ -1,27 +1,25 @@
 ---
-title: "Kubernetes Dashboard"
+title: "Kubernetes ダッシュボード"
 weight: 60
 ---
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-This installation guide will help you to deploy and configure the [Kubernetes Dashboard](https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/) on K3s.
+このインストール ガイドは、[Kubernetes ダッシュボード](https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/) を K3s にデプロイして構成するのに役立ちます。
 
-### Deploying the Kubernetes Dashboard
-
+### Kubernetes ダッシュボードのデプロイ
 ```bash
 GITHUB_URL=https://github.com/kubernetes/dashboard/releases
 VERSION_KUBE_DASHBOARD=$(curl -w '%{url_effective}' -I -L -s -S ${GITHUB_URL}/latest -o /dev/null | sed -e 's|.*/||')
 sudo k3s kubectl create -f https://raw.githubusercontent.com/kubernetes/dashboard/${VERSION_KUBE_DASHBOARD}/aio/deploy/recommended.yaml
 ```
 
-### Dashboard RBAC Configuration
+### ダッシュボードの RBAC 構成
 
-> **Important:** The `admin-user` created in this guide will have administrative privileges in the Dashboard.
+> **重要:** このガイドで作成された「admin-user」には、ダッシュボードでの管理者権限が付与されます。
 
-Create the following resource manifest files:
-
+次のリソース マニフェスト ファイルを作成します。
 `dashboard.admin-user.yml`
 ```yaml
 apiVersion: v1
@@ -47,21 +45,20 @@ subjects:
   namespace: kubernetes-dashboard
 ```
 
-Deploy the `admin-user` configuration:
-
+「admin-user」構成をデプロイします。
 ```bash
 sudo k3s kubectl create -f dashboard.admin-user.yml -f dashboard.admin-user-role.yml
 ```
 
-### Obtain the Bearer Token
+### Bearerトークンを取得する
 <Tabs>
-<TabItem value="v1.24 and newer">
+<TabItem value="v1.24以降">
 
 ```bash
 sudo k3s kubectl -n kubernetes-dashboard create token admin-user
 ```
 </TabItem>
-<TabItem value="v1.23 and older">
+<TabItem value="v1.23以前">
 
 ```bash
 sudo k3s kubectl -n kubernetes-dashboard describe secret admin-user-token | grep '^token'
@@ -71,25 +68,23 @@ sudo k3s kubectl -n kubernetes-dashboard describe secret admin-user-token | grep
 </Tabs>
 
 
-### Local Access to the Dashboard
+### ダッシュボードへのローカル アクセス
 
-To access the Dashboard you must create a secure channel to your K3s cluster:
-
+ダッシュボードにアクセスするには、K3s クラスターへの安全なチャネルを作成する必要があります。
 ```bash
 sudo k3s kubectl proxy
 ```
 
-The Dashboard is now accessible at:
+ダッシュボードは次の場所からアクセスできるようになりました:
 
 * http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/
-* `Sign In` with the `admin-user` Bearer Token
+* `admin-user` ベアラー トークンで `Sign In`
 
-#### Advanced: Remote Access to the Dashboard
+#### 詳細: ダッシュボードへのリモート アクセス
 
-Please see the Dashboard documentation: Using [Port Forwarding](https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/) to Access Applications in a Cluster.
+ダッシュボードのドキュメントを参照してください: [ポート フォワーディング](https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/) を使用してクラスター内のアプリケーションにアクセスします。
 
-### Upgrading the Dashboard
-
+### ダッシュボードのアップグレード
 ```bash
 sudo k3s kubectl delete ns kubernetes-dashboard
 GITHUB_URL=https://github.com/kubernetes/dashboard/releases
@@ -97,7 +92,7 @@ VERSION_KUBE_DASHBOARD=$(curl -w '%{url_effective}' -I -L -s -S ${GITHUB_URL}/la
 sudo k3s kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/${VERSION_KUBE_DASHBOARD}/aio/deploy/recommended.yaml -f dashboard.admin-user.yml -f dashboard.admin-user-role.yml
 ```
 
-### Deleting the Dashboard and admin-user configuration
+### ダッシュボードと管理者ユーザー構成の削除
 
 ```bash
 sudo k3s kubectl delete ns kubernetes-dashboard

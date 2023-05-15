@@ -1,98 +1,92 @@
 ---
-title: High Availability with an External DB
+title: 外部DBでの高可用
 weight: 30
 ---
 
-> **Note:** Official support for installing Rancher on a Kubernetes cluster was introduced in our v1.0.0 release.
+> **注:** Kubernetes クラスターに Rancher をインストールするための公式サポートは、v1.0.0 リリースで導入されました。
 
-This section describes how to install a high-availability K3s cluster with an external database.
+このセクションでは、外部データベースを使用して高可用性 K3s クラスターをインストールする方法について説明します。
 
-Single server clusters can meet a variety of use cases, but for environments where uptime of the Kubernetes control plane is critical, you can run K3s in an HA configuration. An HA K3s cluster is comprised of:
+単一サーバー クラスターはさまざまなユース ケースに対応できますが、Kubernetes コントロール プレーンのアップタイムが重要な環境では、HA 構成で K3 を実行できます。 HA K3s クラスターは以下で構成されます。
 
-* Two or more **server nodes** that will serve the Kubernetes API and run other control plane services
-* Zero or more **agent nodes** that are designated to run your apps and services
-* An **external datastore** (as opposed to the embedded SQLite datastore used in single-server setups)
-* A **fixed registration address** that is placed in front of the server nodes to allow agent nodes to register with the cluster
+* Kubernetes API を提供し、他のコントロール プレーン サービスを実行する 2 つ以上の **サーバー ノード**
+* アプリとサービスを実行するように指定された 0 個以上の **エージェント ノード**
+* **外部データストア** (単一サーバーのセットアップで使用される組み込み SQLite データストアとは対照的に)
+* サーバー ノードの前に配置され、エージェント ノードがクラスターに登録できるようにする **固定登録アドレス**
 
-For more details on how these components work together, refer to the [architecture section.](../architecture/architecture.md#high-availability-k3s-server-with-an-external-db)
+これらのコンポーネントがどのように連携するかについての詳細は、[アーキテクチャのセクション](../architecture/architecture.md#high-availability-k3s-server-with-an-external-db)を参照してください。
 
-Agents register through the fixed registration address, but after registration they establish a connection directly to one of the server nodes. This is a websocket connection initiated by the `k3s agent` process, it is maintained by a client-side load balancer running as part of the agent process.
+エージェントは固定登録アドレスを介して登録しますが、登録後、サーバー ノードの 1 つに直接接続を確立します。 これは、「k3s エージェント」プロセスによって開始される Websocket 接続であり、エージェント プロセスの一部として実行されるクライアント側のロード バランサーによって維持されます。
 
-## Installation Outline
+## インストールの概要
 
-Setting up an HA cluster requires the following steps:
+HA クラスターをセットアップするには、次の手順が必要です。
 
-### 1. Create an External Datastore
-You will first need to create an external datastore for the cluster. See the [Cluster Datastore Options](datastore.md) documentation for more details.
+### 1. 外部データストアを作成する
+最初に、クラスター用の外部データストアを作成する必要があります。 詳細については、[クラスター データストア オプション](datastore.md) のドキュメントを参照してください。
 
-### 2. Launch Server Nodes
-K3s requires two or more server nodes for this HA configuration. See the [Requirements](requirements.md) guide for minimum machine requirements.
+### 2.サーバーノードを起動する
+K3s は、この HA 構成のために 2 つ以上のサーバー ノードを必要とします。 マシンの最小要件については、[要件](requirements.md) ガイドを参照してください。
 
-When running the `k3s server` command on these nodes, you must set the `datastore-endpoint` parameter so that K3s knows how to connect to the external datastore. The `token` parameter can also be used to set a deterministic token when adding nodes. When empty, this token will be generated automatically for further use.
+これらのノードで「k3s server」コマンドを実行する場合、「datastore-endpoint」パラメータを設定して、K3s が外部データストアへの接続方法を認識できるようにする必要があります。 `token` パラメータを使用して、ノードを追加するときに決定論的トークンを設定することもできます。 空の場合、このトークンは後で使用するために自動的に生成されます。
 
-For example, a command like the following could be used to install the K3s server with a MySQL database as the external datastore and [set a token](../reference/server-config.md#cluster-options):
-
+たとえば、次のようなコマンドを使用して、外部データストアとして MySQL データベースを使用して K3s サーバーをインストールし、[トークンを設定](../reference/server-config.md#cluster-options) することができます。
 ```bash
 curl -sfL https://get.k3s.io | sh -s - server \
   --token=SECRET \
   --datastore-endpoint="mysql://username:password@tcp(hostname:3306)/database-name"
 ```
 
-The datastore endpoint format differs based on the database type. For details, refer to the section on [datastore endpoint formats.](datastore.md#datastore-endpoint-format-and-functionality)
+データストア エンドポイントの形式は、データベースの種類によって異なります。 詳細については、[データストア エンドポイントの形式] (datastore.md#datastore-endpoint-format-and-functionality) のセクションを参照してください。
 
-To configure TLS certificates when launching server nodes, refer to the [datastore configuration guide.](datastore.md#external-datastore-configuration-parameters)
-
+サーバー ノードの起動時に TLS 証明書を構成するには、[データストア構成ガイド](datastore.md#external-datastore-configuration-parameters) を参照してください。
 :::note
-The same installation options available to single-server installs are also available for high-availability installs. For more details, see the [Configuration Options](configuration.md) documentation.
+単一サーバーのインストールで使用できるのと同じインストール オプションが、高可用性のインストールでも使用できます。 詳細については、[構成オプション](configuration.md) のドキュメントを参照してください。
 :::
 
-By default, server nodes will be schedulable and thus your workloads can get launched on them. If you wish to have a dedicated control plane where no user workloads will run, you can use taints. The `node-taint` parameter will allow you to configure nodes with taints, for example `--node-taint CriticalAddonsOnly=true:NoExecute`.
+デフォルトでは、サーバー ノードはスケジュール可能であるため、ワークロードをそれらで起動できます。 ユーザー ワークロードが実行されない専用のコントロール プレーンが必要な場合は、テイントを使用できます。 `node-taint` パラメータを使用すると、`--node-taint CriticalAddonsOnly=true:NoExecute` のようにテイントを使用してノードを構成できます。
 
-Once you've launched the `k3s server` process on all server nodes, ensure that the cluster has come up properly with `k3s kubectl get nodes`. You should see your server nodes in the Ready state.
+すべてのサーバー ノードで「k3s サーバー」プロセスを起動したら、「k3s kubectl get nodes」でクラスターが適切に起動していることを確認します。 サーバー ノードが Ready 状態になっているはずです。
 
-### 3. Configure the Fixed Registration Address
+### 3.固定登録アドレスを設定する
 
-Agent nodes need a URL to register against. This can be the IP or hostname of any of the server nodes, but in many cases those may change over time. For example, if you are running your cluster in a cloud that supports scaling groups, you may scale the server node group up and down over time, causing nodes to be created and destroyed and thus having different IPs from the initial set of server nodes. Therefore, you should have a stable endpoint in front of the server nodes that will not change over time. This endpoint can be set up using any number approaches, such as:
+エージェント ノードには、登録先の URL が必要です。 これは任意のサーバー ノードの IP またはホスト名にすることができますが、多くの場合、それらは時間の経過とともに変化する可能性があります。 たとえば、グループのスケーリングをサポートするクラウドでクラスターを実行している場合、時間の経過とともにサーバー ノード グループをスケールアップおよびスケールダウンして、ノードが作成および破棄され、サーバー ノードの初期セットとは異なる IP を持つ可能性があります。 したがって、時間の経過とともに変化しない安定したエンドポイントがサーバー ノードの前にある必要があります。 このエンドポイントは、次のようなさまざまなアプローチを使用して設定できます。
 
-* A layer-4 (TCP) load balancer
-* Round-robin DNS
-* Virtual or elastic IP addresses
+* レイヤー 4 (TCP) ロード バランサー
+* ラウンドロビン DNS
+* 仮想またはエラスティック IP アドレス
 
-This endpoint can also be used for accessing the Kubernetes API. So you can, for example, modify your [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) file to point to it instead of a specific node. To avoid certificate errors in such a configuration, you should install the server with the `--tls-san YOUR_IP_OR_HOSTNAME_HERE` option. This option adds an additional hostname or IP as a Subject Alternative Name in the TLS cert, and it can be specified multiple times if you would like to access via both the IP and the hostname.
+このエンドポイントは、Kubernetes API へのアクセスにも使用できます。 たとえば、[kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) ファイルを変更して、特定のノードではなくそのノードを指すようにすることができます。 このような構成で証明書エラーを回避するには、`--tls-san YOUR_IP_OR_HOSTNAME_HERE` オプションを使用してサーバーをインストールする必要があります。 このオプションは、追加のホスト名または IP を TLS 証明書のサブジェクト代替名として追加します。IP とホスト名の両方を介してアクセスする場合は、複数回指定できます。
 
-### 4. Optional: Join Additional Server Nodes
+### 4. オプション: 追加のサーバー ノードに参加する
 
-The same example command in Step 2 can be used to join additional server nodes, where the token from the first node needs to be used.
+ステップ 2 と同じコマンド例を使用して、最初のノードからのトークンを使用する必要がある追加のサーバー ノードに参加できます。
 
-If the first server node was started without the `--token` CLI flag or `K3S_TOKEN` variable, the token value can be retrieved from any server already joined to the cluster:
+`--token` CLI フラグまたは `K3S_TOKEN` 変数なしで最初のサーバー ノードが起動された場合、トークン値は、既にクラスターに参加している任意のサーバーから取得できます。
 ```bash
 cat /var/lib/rancher/k3s/server/token
 ```
 
-Additional server nodes can then be added [using the token](../reference/server-config.md#cluster-options):
-
+[トークンを使用して](../reference/server-config.md#cluster-options):
 ```bash
 curl -sfL https://get.k3s.io | sh -s - server \
   --token=SECRET \
   --datastore-endpoint="mysql://username:password@tcp(hostname:3306)/database-name"
 ```
 
-There are a few config flags that must be the same in all server nodes:
-
-* Network related flags: `--cluster-dns`, `--cluster-domain`, `--cluster-cidr`, `--service-cidr`
-* Flags controlling the deployment of certain components: `--disable-helm-controller`, `--disable-kube-proxy`, `--disable-network-policy` and any component passed to `--disable`
-* Feature related flags: `--secrets-encryption`
-
+すべてのサーバー ノードで同じでなければならない構成フラグがいくつかあります。
+* ネットワーク関連のフラグ: `--cluster-dns`、`--cluster-domain`、`--cluster-cidr`、`--service-cidr`
+* 特定のコンポーネントの展開を制御するフラグ: `--disable-helm-controller`、`--disable-kube-proxy`、`--disable-network-policy`、および `--disable` に渡されるすべてのコンポーネント
+* 機能関連フラグ: `--secrets-encryption`
 :::note
-Ensure that you retain a copy of this token as it is required when restoring from backup and adding nodes. Previously, K3s did not enforce the use of a token when using external SQL datastores.
+バックアップから復元してノードを追加するときに必要になるため、このトークンのコピーを必ず保持してください。 以前は、K3s は、外部 SQL データストアを使用するときにトークンの使用を強制しませんでした。
 :::
 
-### 5. Optional: Join Agent Nodes
+### 5. オプション: エージェント ノードに参加する
 
-Because K3s server nodes are schedulable by default, the minimum number of nodes for an HA K3s server cluster is two server nodes and zero agent nodes. To add nodes designated to run your apps and services, join agent nodes to your cluster.
+K3s サーバー ノードはデフォルトでスケジュール可能であるため、HA K3s サーバー クラスタのノードの最小数は、2 つのサーバー ノードとゼロ エージェント ノードです。 アプリとサービスを実行するように指定されたノードを追加するには、エージェント ノードをクラスターに参加させます。
 
-Joining agent nodes in an HA cluster is the same as joining agent nodes in a single server cluster. You just need to specify the URL the agent should register to and the token it should use.
-
+HA クラスター内のエージェント ノードに参加することは、単一サーバー クラスター内のエージェント ノードに参加することと同じです。 エージェントが登録する URL と使用するトークンを指定するだけです。
 ```bash
 K3S_TOKEN=SECRET k3s agent --server https://fixed-registration-address:6443
 ```

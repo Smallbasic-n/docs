@@ -1,54 +1,56 @@
 ---
-title: "Automated Upgrades"
+title: "自動的なアップグレード"
 weight: 20
 ---
 
 ### Overview
 
-You can manage K3s cluster upgrades using Rancher's system-upgrade-controller. This is a Kubernetes-native approach to cluster upgrades. It leverages a [custom resource definition (CRD)](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#custom-resources), a `plan`, and a [controller](https://kubernetes.io/docs/concepts/architecture/controller/).
+Rancher の system-upgrade-controller を使用して、K3s クラスターのアップグレードを管理できます。 これは、クラスターのアップグレードに対する Kubernetes ネイティブのアプローチです。 [カスタム リソース定義 (CRD)](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#custom-resources)、「計画」、および [ コントローラー](https://kubernetes.io/docs/concepts/architecture/controller/)。
 
-The plan defines upgrade policies and requirements. It also defines which nodes should be upgraded through a [label selector](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/). See below for plans with defaults appropriate for upgrading a K3s cluster. For more advanced plan configuration options, please review the [CRD](https://github.com/rancher/system-upgrade-controller/blob/master/pkg/apis/upgrade.cattle.io/v1/types.go).
+計画では、アップグレードのポリシーと要件を定義します。 また、[ラベル セレクター](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/) を介してアップグレードする必要があるノードも定義します。 K3s クラスターのアップグレードに適したデフォルトのプランについては、以下を参照してください。 より高度なプラン構成オプションについては、[CRD](https://github.com/rancher/system-upgrade-controller/blob/master/pkg/apis/upgrade.cattle.io/v1/types.go) を確認してください。 .
 
-The controller schedules upgrades by monitoring plans and selecting nodes to run upgrade [jobs](https://kubernetes.io/docs/concepts/workloads/controllers/jobs-run-to-completion/) on. When a job has run to completion successfully, the controller will label the node on which it ran accordingly.
+コントローラーは、プランを監視し、アップグレード [ジョブ](https://kubernetes.io/docs/concepts/workloads/controllers/jobs-run-to-completion/) を実行するノードを選択することで、アップグレードをスケジュールします。 ジョブが正常に完了すると、コントローラーはジョブが実行されたノードにラベルを付けます。
 
 :::note 
-The upgrade job that is launched must be highly privileged. It is configured with the following:
-- Host `IPC`, `NET`, and `PID` namespaces
-- The `CAP_SYS_BOOT` capability
-- Host root mounted at `/host` with read and write permissions
+起動されるアップグレード ジョブには、高度な特権が必要です。 次のように構成されています。
+- ホスト `IPC`、`NET`、および `PID` 名前空間
+- `CAP_SYS_BOOT` 機能
+- ホスト ルートは、読み書きパーミッションで「/host」にマウントされます
 :::
 
 
-To automate upgrades in this manner, you must do the following:
+この方法でアップグレードを自動化するには、次の手順を実行する必要があります。
 
-1. Install the system-upgrade-controller into your cluster
-1. Configure plans
+1. system-upgrade-controller をクラスターにインストールします
+1. プランを構成する
 
 :::note
-Users can and should use Rancher to upgrade their K3s cluster if Rancher is managing it. 
-- If using Rancher to upgrade, the following steps below are taken care of for you.
-- If *not* using Rancher to upgrade, you must follow the steps below.
+Rancher が K3s クラスターを管理している場合、ユーザーは Rancher を使用して K3s クラスターをアップグレードできます。
+- Rancher を使用してアップグレードする場合、以下の手順が自動的に実行されます。
+- Rancher を使用してアップグレードしない場合は、以下の手順に従う必要があります。
 :::
 
-For more details on the design and architecture of the system-upgrade-controller or its integration with K3s, see the following Git repositories:
+system-upgrade-controller の設計とアーキテクチャ、または K3s との統合の詳細については、次の Git リポジトリを参照してください。
 
-- [system-upgrade-controller](https://github.com/rancher/system-upgrade-controller)
+- [システムアップグレードコントローラー](https://github.com/rancher/system-upgrade-controller)
 - [k3s-upgrade](https://github.com/k3s-io/k3s-upgrade)
 
 
-### Install the system-upgrade-controller
- The system-upgrade-controller can be installed as a deployment into your cluster. The deployment requires a service-account, clusterRoleBinding, and a configmap. To install these components, run the following command:
+### system-upgrade-controller をインストールします
+  system-upgrade-controller は、デプロイメントとしてクラスターにインストールできます。 デプロイには、サービス アカウント、clusterRoleBinding、および configmap が必要です。 これらのコンポーネントをインストールするには、次のコマンドを実行します。:
+- ホスト `IPC`、`NET`、および `PID` 名前空間
+- `CAP_SYS_BOOT` 機能
+- ホスト ルートは、読み書きパーミッションで「/host」にマウントされます
 ```bash
 kubectl apply -f https://github.com/rancher/system-upgrade-controller/releases/latest/download/system-upgrade-controller.yaml
 ```
-The controller can be configured and customized via the previously mentioned configmap, but the controller must be redeployed for the changes to be applied.
+コントローラーは前述の configmap を介して構成およびカスタマイズできますが、変更を適用するにはコントローラーを再デプロイする必要があります。
 
 
-### Configure plans
-It is recommended you create at least two plans: a plan for upgrading server (master) nodes and a plan for upgrading agent (worker) nodes. You can create additional plans as needed to control the rollout of the upgrade across nodes. Once the plans are created, the controller will pick them up and begin to upgrade your cluster.  
+### プランを構成する
+サーバー (マスター) ノードをアップグレードするためのプランと、エージェント (ワーカー) ノードをアップグレードするためのプランの少なくとも 2 つのプランを作成することをお勧めします。 ノード間のアップグレードのロールアウトを制御するために、必要に応じて追加の計画を作成できます。 プランが作成されると、コントローラーがそれらを選択し、クラスターのアップグレードを開始します。
 
-The following two example plans will upgrade your cluster to K3s v1.24.6+k3s1:
-
+次の 2 つの計画例では、クラスターを K3s v1.24.6+k3s1 にアップグレードします。
 ```yaml
 # Server plan
 apiVersion: upgrade.cattle.io/v1
@@ -94,17 +96,17 @@ spec:
   version: v1.24.6+k3s1
 ```
 
-There are a few important things to call out regarding these plans:
+これらの計画に関して、重要な点がいくつかあります。
 
-1) The plans must be created in the same namespace where the controller was deployed.
+1) プランは、コントローラーがデプロイされたのと同じ名前空間で作成する必要があります。
 
-2) The `concurrency` field indicates how many nodes can be upgraded at the same time. 
+2) 「concurrency」フィールドは、同時にアップグレードできるノードの数を示します。
 
-3) The server-plan targets server nodes by specifying a label selector that selects nodes with the `node-role.kubernetes.io/master` label. The agent-plan targets agent nodes by specifying a label selector that select nodes without that label.
+3) サーバー プランは、「node-role.kubernetes.io/master」ラベルを持つノードを選択するラベル セレクターを指定することで、サーバー ノードをターゲットにします。 エージェント プランは、そのラベルのないノードを選択するラベル セレクターを指定することによって、エージェント ノードをターゲットにします。
 
-4) The `prepare` step in the agent-plan will cause upgrade jobs for that plan to wait for the server-plan to complete before they execute.
+4) エージェント プランの「準備」ステップにより、そのプランのアップグレード ジョブは、サーバー プランが完了するのを待ってから実行されます。
 
-5) Both plans have the `version` field set to v1.24.6+k3s1. Alternatively, you can omit the `version` field and set the `channel` field to a URL that resolves to a release of K3s. This will cause the controller to monitor that URL and upgrade the cluster any time it resolves to a new release. This works well with the [release channels](manual.md#release-channels). Thus, you can configure your plans with the following channel to ensure your cluster is always automatically upgraded to the newest stable release of K3s:
+5) どちらのプランも「バージョン」フィールドが v1.24.6+k3s1 に設定されています。 または、`version` フィールドを省略して、`channel` フィールドを K3s のリリースに解決される URL に設定することもできます。 これにより、コントローラはその URL を監視し、新しいリリースに解決されるたびにクラスタをアップグレードします。 これは、[リリース チャンネル](manual.md#release-channels) でうまく機能します。 したがって、次のチャネルを使用して計画を構成し、クラスターが常に最新の安定した K3s リリースに自動的にアップグレードされるようにすることができます。
 ```yaml
 apiVersion: upgrade.cattle.io/v1
 kind: Plan
@@ -115,9 +117,9 @@ spec:
 
 ```
 
-As stated, the upgrade will begin as soon as the controller detects that a plan was created. Updating a plan will cause the controller to re-evaluate the plan and determine if another upgrade is needed.
+前述のように、プランが作成されたことをコントローラが検出するとすぐに、アップグレードが開始されます。 計画を更新すると、コントローラは計画を再評価し、別のアップグレードが必要かどうかを判断します。
 
-You can monitor the progress of an upgrade by viewing the plan and jobs via kubectl:
+kubectl を介してプランとジョブを表示することで、アップグレードの進行状況を監視できます。
 ```bash
 kubectl -n system-upgrade get plans -o yaml
 kubectl -n system-upgrade get jobs -o yaml

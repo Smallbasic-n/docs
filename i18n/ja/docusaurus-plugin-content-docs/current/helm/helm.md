@@ -3,27 +3,26 @@ title: Helm
 weight: 42
 ---
 
-Helm is the package management tool of choice for Kubernetes. Helm charts provide templating syntax for Kubernetes YAML manifest documents. With Helm, we can create configurable deployments instead of just using static files. For more information about creating your own catalog of deployments, check out the docs at [https://helm.sh/docs/intro/quickstart/](https://helm.sh/docs/intro/quickstart/).
+Helmは、Kubernetesのパッケージ管理ツールとして選択されています。Helmチャートは、KubernetesのYAMLマニフェストドキュメントのテンプレート構文を提供します。Helmを使えば、静的なファイルを使うだけでなく、設定可能なデプロイメントを作成することができます。独自のデプロイメントカタログの作成については、[https://helm.sh/docs/intro/quickstart/](https://helm.sh/docs/intro/quickstart/)のドキュメントをチェックしてみてください。
 
-K3s does not require any special configuration to use with Helm command-line tools. Just be sure you have properly set up your kubeconfig as per the section about [cluster access](../cluster-access/cluster-access.md). K3s does include some extra functionality to make deploying both traditional Kubernetes resource manifests and Helm Charts even easier with the [rancher/helm-release CRD.](#using-the-helm-crd)
+K3sは、Helmコマンドラインツールで使用するために特別な設定を必要としません。ただ、[cluster access](../cluster-access/cluster-access.md) のセクションにあるように、kubeconfigを適切にセットアップしていることを確認してください。K3sには、従来のKubernetesリソースマニフェストとHelmチャートの両方をより簡単にデプロイするための追加機能があり、[rancher/helm-release CRD.](#using-the-helm-crd) があります。
 
-This section covers the following topics:
+このセクションでは、以下のトピックについて説明します：
 
-- [Automatically Deploying Manifests and Helm Charts](#automatically-deploying-manifests-and-helm-charts)
-- [Using the Helm CRD](#using-the-helm-crd)
-- [Customizing Packaged Components with HelmChartConfig](#customizing-packaged-components-with-helmchartconfig)
-- [Migrating from Helm v2](#migrating-from-helm-v2)
+- [マニフェストとHelmチャートの自動展開](#automatically-deploying-manifests and-helm-charts)
+- [Helm CRDを使う](#using-the-helm-crd)
+- [HelmChartConfigを使ったパッケージコンポーネントのカスタマイズ](#customizing-packaged-components-with-helmchartconfig)
+- [Helm v2からの移行](#migrating-from-helm-v2)
 
-### Automatically Deploying Manifests and Helm Charts
+### マニフェストと Helm チャートの自動展開
 
-Any Kubernetes manifests found in `/var/lib/rancher/k3s/server/manifests` will automatically be deployed to K3s in a manner similar to `kubectl apply`. Manifests deployed in this manner are managed as AddOn custom resources, and can be viewed by running `kubectl get addon -A`. You will find AddOns for packaged components such as CoreDNS, Local-Storage, Traefik, etc. AddOns are created automatically by the deploy controller, and are named based on their filename in the manifests directory.
+`var/lib/rancher/k3s/server/manifests` で見つかった Kubernetes マニフェストは、`kubectl apply` と同様の方法で K3s に自動的にデプロイされます。この方法でデプロイされたマニフェストはAddOnカスタムリソースとして管理され、`kubectl get addon -A`を実行することで表示することができます。CoreDNS、Local-Storage、Traefikなど、パッケージ化されたコンポーネントのAddOnを見つけることができます。AddOnsはdeploy controllerによって自動的に作成され、manifestsディレクトリのファイル名に基づいて命名されます。
 
-It is also possible to deploy Helm charts as AddOns. K3s includes a [Helm Controller](https://github.com/k3s-io/helm-controller/) that manages Helm charts using a HelmChart Custom Resource Definition (CRD).
+また、AddOnsとしてHelmチャートをデプロイすることも可能です。K3sには、HelmChart Custom Resource Definition (CRD)を使用してHelmチャートを管理する[Helm Controller](https://github.com/k3s-io/helm-controller/)があります。
 
-### Using the Helm CRD
+### Helm CRDの使用方法
 
-The [HelmChart resource definition](https://github.com/k3s-io/helm-controller#helm-controller) captures most of the options you would normally pass to the `helm` command-line tool. Here's an example of how you might deploy Grafana from the default chart repository, overriding some of the default chart values. Note that the HelmChart resource itself is in the `kube-system` namespace, but the chart's resources will be deployed to the `monitoring` namespace.
-
+[HelmChartリソース定義](https://github.com/k3s-io/helm-controller#helm-controller)は、通常`helm`コマンドラインツールに渡すオプションのほとんどをキャプチャします。ここでは、デフォルトのチャートリポジトリからGrafanaをデプロイして、デフォルトのチャート値の一部を上書きする例を示します。HelmChartリソース自体は`kube-system`ネームスペースにありますが、チャートのリソースは`monitoring`ネームスペースにデプロイされることに注意してください。
 ```yaml
 apiVersion: helm.cattle.io/v1
 kind: HelmChart
@@ -46,32 +45,32 @@ spec:
         enabled: true
 ```
 
-#### HelmChart Field Definitions
+#### HelmChart フィールド定義
 
-| Field | Default | Description | Helm Argument / Flag Equivalent |
+| フィールド｜デフォルト｜説明｜Helmの引数／フラグに相当するもの。
 |-------|---------|-------------|-------------------------------|
-| name |   | Helm Chart name | NAME |
-| spec.chart |   | Helm Chart name in repository, or complete HTTPS URL to chart archive (.tgz) | CHART |
-| spec.targetNamespace | default | Helm Chart target namespace | `--namespace` |
-| spec.version |   | Helm Chart version (when installing from repository) | `--version` |
-| spec.repo |   | Helm Chart repository URL | `--repo` |
-| spec.repoCA | | Specify the certificates of HTTPS-enabled servers | `--ca-file` |
-| spec.helmVersion | v3 | Helm version to use (`v2` or `v3`) |  |
-| spec.bootstrap | False | Set to True if this chart is needed to bootstrap the cluster (Cloud Controller Manager, etc) |  |
-| spec.set |   | Override simple default Chart values. These take precedence over options set via valuesContent. | `--set` / `--set-string` |
-| spec.jobImage |   | Specify the image to use when installing the helm chart. E.g. rancher/klipper-helm:v0.3.0 . | |
-| spec.timeout | 300 | Timeout in seconds for Helm operations | `--timeout` |
-| spec.failurePolicy | reinstall | Set to `abort` which case the Helm operation is aborted, pending manual intervention by the operator. | |
-| spec.valuesContent |   | Override complex default Chart values via YAML file content | `--values` |
-| spec.chartContent |   | Base64-encoded chart archive .tgz - overrides spec.chart | CHART |
 
-Content placed in `/var/lib/rancher/k3s/server/static/` can be accessed anonymously via the Kubernetes APIServer from within the cluster. This URL can be templated using the special variable `%{KUBERNETES_API}%` in the `spec.chart` field. For example, the packaged Traefik component loads its chart from `https://%{KUBERNETES_API}%/static/charts/traefik-12.0.000.tgz`.
+| spec.chart｜｜Helm リポジトリ内のチャート名、またはチャートアーカイブ (.tgz) への完全な HTTPS URL｜CHART |.
+| spec.targetNamespace｜default｜Helm Chart target namespace｜--namespace`｜｜.
+| spec.version｜｜Helm Chart バージョン（リポジトリからインストールする場合）｜--version
+| spec.repo｜｜Helm ChartのリポジトリURL｜`--repo`｜｜。
+
+| spec.helmVersion | v3 | 使用するHelmのバージョン（`v2`または`v3`）｜｜spec.helmVersion
+| spec.bootstrap｜ False｜このチャートがクラスタのブートストラップ（Cloud Controller Managerなど）に必要な場合は、Trueに設定します｜｜｜。
+| spec.set｜｜Chart の単純なデフォルト値を上書きする。これらはvaluesContentで設定されたオプションより優先される。| `--set` / `--set-string` |...
+| spec.jobImage｜｜ ヘルムチャートのインストール時に使用する画像を指定します。例：rancher/klipper-helm:v0.3.0 . | |
+| spec.timeout｜300｜Helm 操作のタイムアウト（秒）｜--timeout`｜｜.
+| spec.failurePolicy｜reinstall｜`abort` に設定すると、Helmの操作は中断され、オペレータによる手動操作が保留されます。| |
+| spec.valuesContent｜｜ YAMLファイルの内容で複雑なデフォルトのチャート値を上書きする｜--values`｜｜。
+| spec.chartContent｜｜Base64 エンコードされたチャートアーカイブ .tgz - spec.chart｜CHART｜ をオーバーライドします。
+
+`var/lib/rancher/k3s/server/static/`に置かれたコンテンツは、クラスタ内からKubernetes APIServerを介して匿名でアクセスすることができます。このURLは `spec.chart` フィールドの特殊変数 `%{KUBERNETES_API}%` を使ってテンプレート化することができる。例えば、パッケージ化されたTraefikコンポーネントは、`https://%{KUBERNETES_API}%/static/charts/traefik-12.0.000.tgz`からそのチャートをロードします。
 
 :::note
-The `name` field should follow the Helm chart naming conventions. Refer [here](https://helm.sh/docs/chart_best_practices/conventions/#chart-names) to learn more.
+name`フィールドはHelmChartの命名規則に従わなければなりません。詳しくは[こちら](https://helm.sh/docs/chart_best_practices/conventions/#chart-names)を参照してください
 :::
 
->**Notice on File Naming Requirements:** `HelmChart` and `HelmChartConfig` manifest filenames should adhere to Kubernetes object [naming restrictions](https://kubernetes.io/docs/concepts/overview/working-with-objects/names/). The Helm Controller uses filenames to create objects; therefore, the filename must also align with the restrictions. Any related errors can be observed in the k3s-server logs. The example below is an error generated from using underscores:
+>**ファイル命名要件に関するお知らせ:** `HelmChart`と`HelmChartConfig`のマニフェストファイル名は、Kubernetesオブジェクト[命名制限](https://kubernetes.io/docs/concepts/overview/working-with-objects/names/)に準拠する必要があります。Helm Controllerはオブジェクトを作成するためにファイル名を使用するため、ファイル名も制限に沿う必要があります。関連するエラーは、k3s-serverのログで確認することができます。以下の例は、アンダースコアの使用によって発生したエラーです：
 ```
 level=error msg="Failed to process config: failed to process 
 /var/lib/rancher/k3s/server/manifests/k3s_ingress_daemonset.yaml: 
@@ -83,22 +82,21 @@ used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]
 ([-a-z0-9]*[a-z0-9])?)*')"
 ```
 
-### Customizing Packaged Components with HelmChartConfig
+### HelmChartConfigによるパッケージコンポーネントのカスタマイズ
 
 :::info Version Gate
 
-Available as of [v1.19.1+k3s1](https://github.com/k3s-io/k3s/releases/tag/v1.19.1%2Bk3s1)
+[v1.19.1+k3s1](https://github.com/k3s-io/k3s/releases/tag/v1.19.1%2Bk3s1)の時点で利用可能です。
 
 :::
 
-To allow overriding values for packaged components that are deployed as HelmCharts (such as Traefik), K3s supports customizing deployments via a HelmChartConfig resources. The HelmChartConfig resource must match the name and namespace of its corresponding HelmChart, and it supports providing additional `valuesContent`, which is passed to the `helm` command as an additional value file.
+HelmChartとしてデプロイされるパッケージコンポーネント（Traefikなど）の値を上書きできるように、K3sはHelmChartConfigリソースによるデプロイのカスタマイズをサポートしています。HelmChartConfig リソースは対応する HelmChart の名前と名前空間と一致しなければならず、追加の値ファイルとして `helm` コマンドに渡される `valuesContent` の提供をサポートする。
 
 :::note
-HelmChart `spec.set` values override HelmChart and HelmChartConfig `spec.valuesContent` settings.
+HelmChart `spec.set` の値は、HelmChart と HelmChartConfig `spec.valuesContent` の設定をオーバーライドします。
 :::
 
-For example, to customize the packaged Traefik ingress configuration, you can create a file named `/var/lib/rancher/k3s/server/manifests/traefik-config.yaml` and populate it with the following content:
-
+例えば、パッケージ化されたTraefikのイングレス設定をカスタマイズするには、`/var/lib/rancher/k3s/server/manifests/traefik-config.yaml`というファイルを作り、以下の内容で入力することができます：
 ```yaml
 apiVersion: helm.cattle.io/v1
 kind: HelmChartConfig
@@ -119,14 +117,14 @@ spec:
       permanentRedirect: false
 ```
 
-### Migrating from Helm v2
+### Helm v2 からの移行
 
 :::info Version Gate
-As of [v1.17.0+k3s.1](https://github.com/k3s-io/k3s/releases/tag/v1.17.0%2Bk3s.1) Helm v3 is supported and used by default.
+[v1.17.0+k3s.1](https://github.com/k3s-io/k3s/releases/tag/v1.17.0%2Bk3s.1) より、Helm v3がサポートされ、デフォルトで使用されます。
 :::
 
-K3s can handle either Helm v2 or Helm v3. If you wish to migrate to Helm v3, [this](https://helm.sh/blog/migrate-from-helm-v2-to-helm-v3/) blog post by Helm explains how to use a plugin to successfully migrate. Refer to the official Helm 3 documentation [here](https://helm.sh/docs/) for more information. Just be sure you have properly set your kubeconfig as per the section about [cluster access.](../cluster-access/cluster-access.md)
+K3sはHelm v2、Helm v3のどちらにも対応しています。Helm v3に移行する場合は、Helm社のブログ記事[こちら](https://helm.sh/blog/migrate-from-helm-v2-to-helm-v3/)で、プラグインを使ってうまく移行する方法を説明しています。より詳しい情報は、Helm 3の公式ドキュメント[こちら](https://helm.sh/docs/)を参照してください。[クラスタアクセス](../cluster-access/cluster-access.md)のセクションに従ってkubeconfigを適切に設定したことを確認してください。
 
 :::note
-Helm 3 no longer requires Tiller and the `helm init` command. Refer to the official documentation for details.
+Helm 3ではTillerと`helm init`コマンドは不要になりました。詳しくは公式ドキュメントを参照してください。
 :::

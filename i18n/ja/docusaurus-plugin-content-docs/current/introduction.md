@@ -1,45 +1,45 @@
 ---
 slug: /
-title: "K3s - Lightweight Kubernetes"
+title: "K3s - 軽量なKubernetes"
 ---
 
-Lightweight Kubernetes. Easy to install, half the memory, all in a binary of less than 100 MB.
+軽量なKubernetes。 簡単にインストールでき、メモリは半分で済み、100 MB以下にすべてのバイナリが搭載されています。
 
-Great for:
+おすすめなのは:
 
-* Edge
+* エッジ
 * IoT
 * CI
-* Development
+* 開発
 * ARM
-* Embedding K8s
+* 組み込まれたK8s
 * Situations where a PhD in K8s clusterology is infeasible
 
-# What is K3s?
+# K3sとは何ですか。
 
-K3s is a fully compliant Kubernetes distribution with the following enhancements:
+K3sは次のものが組み込まれた完全なKubernetesディストリビューションです。
 
-* Packaged as a single binary.
-* Lightweight storage backend based on sqlite3 as the default storage mechanism. etcd3, MySQL, Postgres are also available.
-* Wrapped in simple launcher that handles a lot of the complexity of TLS and options.
-* Secure by default with reasonable defaults for lightweight environments.
-* Simple but powerful "batteries-included" features have been added, such as: 
-    * local storage provider 
-    * service load balancer
-    * Helm controller
-    * Traefik ingress controller.
-* Operation of all Kubernetes control plane components is encapsulated in a single binary and process. This allows K3s to automate and manage complex cluster operations like distributing certificates.
-* External dependencies have been minimized (just a modern kernel and cgroup mounts needed). K3s packages the required dependencies, including:
+* シングルバイナリにパッケージ化。
+* デフォルトのストレージメカニズムとしてのsqlite3をベースとして他軽量なストレージバックエンド。etcd3, MySQL, Postgresも利用可能です。
+* 複雑なTLSのオプションをシンプルなランチャーにラッピング。
+* 軽量な環境のためのデフォルトで合理的なセキュリティが設定されている。
+* シンプルでパワフルな「電池込みの」機能が追加されている。このような：
+    * ローカルストレージプロパイダ
+    * ロードバランササービス
+    * Helmコントローラ
+    * Traefikイングレスコントローラ
+* すべてのKubernetesコントロールプレーンコンポーネントの操作は、単一のバイナリおよびプロセスにカプセル化されている。これにより、K3sは証明書の配布のような複雑なクラスタ操作を自動化し、管理することができる。
+* 外部依存関係は最小化されている(モダンカーネルとcgroupのマウントは必要です)。K3sパッケージが必要とする依存関係、含まれている：
     * containerd
     * Flannel (CNI)
     * CoreDNS
     * Traefik (Ingress)
     * Klipper-lb (Service LB)
-    * Embedded network policy controller
-    * Embedded local-path-provisioner
-    * Host utilities (iptables, socat, etc)
+    * 組み込まれたネットワークポリシーコントローラ
+    * 組み込まれたローカルパスプロビジョナー
+    * ホストユーティリティー (iptables, socat, など)
 
 
-# What's with the name?
+# なぜこの名前なのですか。
 
-We wanted an installation of Kubernetes that was half the size in terms of memory footprint. Kubernetes is a 10-letter word stylized as K8s. So something half as big as Kubernetes would be a 5-letter word stylized as K3s. There is no long form of K3s and no official pronunciation.
+私たちは、メモリフットプリントの観点から、半分のサイズのKubernetesのインストールを望んでいました。Kubernetesは10文字の単語で、K8sと表記されます。つまり、Kubernetesの半分の大きさのものは、K3sという5文字の単語で表されます。K3sの長い形はなく、正式な発音もないです。

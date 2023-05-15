@@ -1,35 +1,34 @@
 ---
-title: Architecture
+title: アーキテクチャ
 weight: 1
 ---
 
 import ThemedImage from '@theme/ThemedImage';
 import useBaseUrl from '@docusaurus/useBaseUrl';
 
-This page describes the architecture of a high-availability K3s server cluster and how it differs from a single-node server cluster.
+このページでは、高可用性K3sサーバクラスタのアーキテクチャと、シングルノードサーバクラスタとの違いについて説明します。
 
-It also describes how agent nodes are registered with K3s servers.
+また、エージェントノードがK3sサーバに登録される方法についても説明します。
 
-* A server node is defined as a host running the `k3s server` command, with control-plane and datastore components managed by K3s.
-* An agent node is defined as a host running the `k3s agent` command, without any datastore or control-plane components.
-* Both servers and agents run the kubelet, container runtime, and CNI. See the [Advanced Options](../advanced/advanced.md#running-agentless-servers-experimental) documentation for more information on running agentless servers.
+* サーバーノードは `k3s server` コマンドを実行するホストと定義され、コントロールプレーンとデータストアのコンポーネントはK3sによって管理されます。
+* エージェントノードは `k3s agent` コマンドを実行するホストとして定義され、データストアやコントロールプレーンのコンポーネントはありません。
+* サーバーとエージェントの両方が、kubelet、コンテナランタイム、CNIを実行します。エージェントレスサーバーの実行に関する詳細については、[Advanced Options](../advanced/advanced.md#running-agentless-servers-experimental) ドキュメントを参照してください。
 
-This page covers the following topics:
+このページでは、以下のトピックを扱います：
 
-- [Single-server setup with an embedded database](#single-server-setup-with-an-embedded-db)
-- [High-availability K3s server with an external database](#high-availability-k3s-server-with-an-external-db)
-  - [Fixed registration address for agent nodes](#fixed-registration-address-for-agent-nodes)
-- [How agent node registration works](#how-agent-node-registration-works)
-- [Automatically deployed manifests](#automatically-deployed-manifests)
+- [データベースを組み込んだ単一サーバーの設定](#single-server-setup-with-an-embedded-db)
+- [外部データベースによる高可用性K3sサーバー](#high-availability-k3s-server-with-an-external-db)
+- [エージェントノード用登録アドレスの固定化](#fixed-registration-address for-agent-nodes)
+- [エージェントノード登録の仕組み](#how-agent-node-registration-works)
+- [自動的にデプロイされるマニフェスト](#automatically-deployed-manifests)
 
-### Single-server Setup with an Embedded DB
+### 組み込みDBによるシングルサーバーのセットアップ
 
-The following diagram shows an example of a cluster that has a single-node K3s server with an embedded SQLite database.
+次の図は、SQLiteデータベースを組み込んだシングルノードのK3sサーバーを持つクラスタの例を示しています。
 
-In this configuration, each agent node is registered to the same server node. A K3s user can manipulate Kubernetes resources by calling the K3s API on the server node.
-
+この構成では、各エージェントノードは同じサーバーノードに登録されています。K3sユーザーは、サーバーノード上のK3s APIを呼び出すことで、Kubernetesリソースを操作することができます。
 <ThemedImage
-  alt="K3s Architecture with a Single Server"
+  alt="シングルサーバによるK3sアーキテクチャ"
   sources={{
     light: useBaseUrl('/img/k3s-architecture-single-server.svg'),
     dark: useBaseUrl('/img/k3s-architecture-single-server-dark.svg'),
@@ -37,47 +36,46 @@ In this configuration, each agent node is registered to the same server node. A 
 />
 
 
-### High-Availability K3s Server with an External DB
+### 外部DBを利用した高可用性K3sサーバ
 
-Single server clusters can meet a variety of use cases, but for environments where uptime of the Kubernetes control plane is critical, you can run K3s in an HA configuration. An HA K3s cluster is comprised of:
+シングルサーバークラスターは様々なユースケースに対応できますが、Kubernetesコントロールプレーンのアップタイムが重要な環境では、HA構成でK3sを実行することができます。HA K3sクラスタは、以下のもので構成されています：
 
-* Two or more **server nodes** that will serve the Kubernetes API and run other control plane services
-* An **external datastore** (as opposed to the embedded SQLite datastore used in single-server setups)
+* Kubernetes APIを提供し、他のコントロールプレーンサービスを実行する2つ以上の**サーバーノード**で構成されます。
+* 外部データストア**（シングルサーバーで使用されるSQLiteデータストアの組み込みとは異なります。）
 
 <ThemedImage
-  alt="K3s Architecture with High-availability Servers"
+  alt="高可用性サーバーを搭載したK3sアーキテクチャ"
   sources={{
     light: useBaseUrl('/img/k3s-architecture-ha-server.svg'),
     dark: useBaseUrl('/img/k3s-architecture-ha-server-dark.svg'),
   }}
 />
 
-### Fixed Registration Address for Agent Nodes
+### エージェントノードの登録アドレスが固定される
 
-In the high-availability server configuration, each node must also register with the Kubernetes API by using a fixed registration address, as shown in the diagram below.
+高可用性サーバー構成では、下図に示すように、各ノードも固定登録アドレスを使用してKubernetes APIに登録する必要があります。
 
-After registration, the agent nodes establish a connection directly to one of the server nodes.
-
+登録後、エージェントノードはサーバーノードの1つに直接接続を確立します。
 <ThemedImage
-  alt="Agent Registration HA"
+  alt="エージェント登録HA"
   sources={{
     light: useBaseUrl('/img/k3s-production-setup.svg'),
     dark: useBaseUrl('/img/k3s-production-setup-dark.svg'),
   }}
 />
 
-### How Agent Node Registration Works
+### エージェントノード登録のしくみ
 
-Agent nodes are registered with a websocket connection initiated by the `k3s agent` process, and the connection is maintained by a client-side load balancer running as part of the agent process.
+エージェントノードは `k3s agent` プロセスによって開始されるウェブソケット接続で登録され、接続はエージェントプロセスの一部として実行されるクライアント側のロードバランサによって維持されます。
 
-Agents will register with the server using the node cluster secret along with a randomly generated password for the node, stored at `/etc/rancher/node/password`. The server will store the passwords for individual nodes as Kubernetes secrets, and any subsequent attempts must use the same password. Node password secrets are stored in the `kube-system` namespace with names using the template `<host>.node-password.k3s`.
+エージェントは、ノードクラスタの秘密情報と、`/etc/rancher/node/password`に格納されているノード用のランダムに生成されたパスワードを使ってサーバーに登録します。サーバーは個々のノードのパスワードをKubernetesシークレットとして保存し、それ以降の試行は同じパスワードを使用する必要があります。ノードパスワードの秘密は `kube-system` 名前空間に保存され、テンプレート `<host>.node-password.k3s` を使用した名前になっています。
 
-Note: Prior to K3s v1.20.2 servers stored passwords on disk at `/var/lib/rancher/k3s/server/cred/node-passwd`.
+注意：K3s v1.20.2以前のサーバーは、ディスク上の `/var/lib/rancher/k3s/server/cred/node-passwd` にパスワードを保存します。
 
-If the `/etc/rancher/node` directory of an agent is removed, the password file should be recreated for the agent, or the entry removed from the server.
+エージェントの `/etc/rancher/node` ディレクトリが削除された場合、パスワードファイルはエージェント用に再作成されるか、サーバーからエントリが削除される必要があります。
 
-A unique node ID can be appended to the hostname by launching K3s servers or agents using the `--with-node-id` flag.
+ノードIDは、`--with-node-id`フラグを使用してK3sサーバーまたはエージェントを起動することにより、ホスト名に追加することができます。
 
-### Automatically Deployed Manifests
+### 自動的にデプロイされるマニフェスト
 
-The [manifests](https://github.com/k3s-io/k3s/tree/master/manifests) located at the directory path `/var/lib/rancher/k3s/server/manifests` are bundled into the K3s binary at build time.  These will be installed at runtime by the [k3s-io/helm-controller.](https://github.com/k3s-io/helm-controller#helm-controller)
+ディレクトリパス `/var/lib/rancher/k3s/server/manifests` にある [manifests](https://github.com/k3s-io/k3s/tree/master/manifests) は、ビルド時に K3s バイナリにバンドルされています。 これらは実行時に[k3s-io/helm-controller.](https://github.com/k3s-io/helm-controller#helm-controller)によってインストールされます。

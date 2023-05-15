@@ -3,56 +3,55 @@ title: FAQ
 weight: 60
 ---
 
-The FAQ is updated periodically and designed to answer the questions our users most frequently ask about K3s.
+FAQは定期的に更新され、K3sについてユーザーから最も頻繁に寄せられる質問に答えるように設計されています。
 
-### Is K3s a suitable replacement for Kubernetes?
+### K3sはKubernetesの代わりとして適切ですか？
 
-K3s is a CNCF-certified Kubernetes distribution, and can do everything required of a standard Kubernetes cluster. It is just a more lightweight version. See the [main](../introduction.md) docs page for more details.
+K3sはCNCF認定のKubernetesディストリビューションであり、標準的なKubernetesクラスタに必要なすべてのことを行うことができます。より軽量化されたバージョンに過ぎません。詳細は[main](../introduction.md)のdocsページを参照してください。
 
-### How can I use my own Ingress instead of Traefik?
+### Traefikの代わりに自分自身のIngressを使うにはどうしたらいいですか？
 
-Simply start K3s server with `--disable=traefik` and deploy your ingress.
+単に `--disable=traefik` で K3s サーバを起動し、あなたの ingress をデプロイしてください。
 
-### Does K3s support Windows?
+### K3sはWindowsをサポートしていますか？
 
-At this time K3s does not natively support Windows, however we are open to the idea in the future.
+現時点では、K3sはWindowsをネイティブにサポートしていませんが、将来的にはこのアイデアを受け入れる予定です。
 
-### How can I build from source?
+### ソースからビルドするにはどうすればよいですか？
 
-Please reference the K3s [BUILDING.md](https://github.com/k3s-io/k3s/blob/master/BUILDING.md) with instructions.
+K3sの[BUILDING.md](https://github.com/k3s-io/k3s/blob/master/BUILDING.md)を参照してください。
 
-### Where are the K3s logs?
+### K3sのログはどこにあるのですか？
 
-The installation script will auto-detect if your OS is using systemd or openrc and start the service.
+インストールスクリプトは、OSがsystemdまたはopenrcを使用しているかどうかを自動検出し、サービスを開始します。
 
-* When run from the command line, logs are sent to stdout and stderr.
-* When running under openrc, logs will be created at `/var/log/k3s.log`.
-* When running under Systemd, logs will be sent to Journald and can be viewed using `journalctl -u k3s`.
+* コマンドラインから実行した場合、ログは標準出力と標準エラーに送信されます。
+* openrcで実行した場合、ログは `/var/log/k3s.log` に作成されます。
+* Systemdで動作している場合、ログはJournaldに送られ、`journalctl -u k3s`で見ることができます。
 
-### Can I run K3s in Docker?
+### DockerでK3sを実行することはできますか？
 
-Yes, there are multiple ways to run K3s in Docker. See [Advanced Options](../advanced/advanced.md#running-k3s-in-docker) for more details.
+はい、DockerでK3sを実行する方法は複数あります。詳細は[Advanced Options](../advanced/advanced.md#running-k3s-in-docker)を参照してください。
 
-### What is the difference between K3s Server and Agent Tokens?
+### K3sのServer TokensとAgent Tokensの違いは何ですか？
 
-In K3s, there are two types of tokens: `K3S_TOKEN` and `K3S_AGENT_TOKEN`.
+K3sでは、`K3S_TOKEN`と`K3S_AGENT_TOKEN`の2種類のトークンがあります。
 
-`K3S_TOKEN`: Defines the key required by the server to offer the HTTP config resources. These resources are requested by the other servers before joining the K3s HA cluster. If the `K3S_AGENT_TOKEN` is not defined, the agents use this token as well to access the required HTTP resources to join the cluster. Note that this token is also used to generate the encryption key for important content in the database (e.g., bootstrap data).
+`K3S_TOKEN`： HTTP configリソースを提供するためにサーバーが必要とするキーを定義します。これらのリソースは、K3s HAクラスタに参加する前に、他のサーバーから要求されます。K3S_AGENT_TOKEN` が定義されていない場合、エージェントはこのトークンを使用して、クラスタに参加するために必要なHTTPリソースにアクセスします。なお、このトークンは、データベース内の重要なコンテンツ（ブートストラップデータなど）の暗号化キーを生成するためにも使用される。
 
-`K3S_AGENT_TOKEN`: Optional. Defines the key required by the server to offer HTTP config resources to the agents. If not defined, agents will require `K3S_TOKEN`. Defining `K3S_AGENT_TOKEN` is encouraged to avoid agents having to know `K3S_TOKEN`, which is also used to encrypt data.
+`k3s_agent_token`： オプション。サーバーがエージェントにHTTP設定リソースを提供する際に必要となるキーを定義します。定義されていない場合、エージェントは `K3S_TOKEN` を要求します。K3S_AGENT_TOKEN` を定義しておくと、エージェントが `K3S_TOKEN` を知らなくても済むようになります。このキーはデータの暗号化にも使用されます。
 
-If no `K3S_TOKEN` is defined, the first K3s server will generate a random token during initial startup. The result is part of the content in `/var/lib/rancher/k3s/server/token`. For example, `K1070878408e06a827960208f84ed18b65fa10f27864e71a57d9e053c4caff8504b::server:df54383b5659b9280aa1e73e60ef78fc`. The token in this example is `df54383b5659b9280aa1e73e60ef78fc`. The full format with the `K10` prefix includes a hash of the cluster's CA certificate, which can be used to ensure that nodes are joining the correct cluster and are not subject to a man-in-the-middle attack during the join process. This full token cannot be generated prior to initial cluster startup, before the cluster CA has been generated.
-
-### I'm having an issue, where can I get help?
+`K3S_TOKEN`が定義されていない場合、最初のK3sサーバーは初期起動時にランダムなトークンを生成します。その結果は `/var/lib/rancher/k3s/server/token` の内容の一部となります。例えば, `K1070878408e06a827960208f84ed18b65fa10f27864e71a57d9e053c4caff8504b::server:df54383b5659b9280aa1e73e60ef78fc`. この例のトークンは `df54383b5659b9280aa1e73e60ef78fc` です。K10`というプレフィックスを持つフルフォーマットには、クラスタのCA証明書のハッシュが含まれています。このハッシュは、ノードが正しいクラスタに参加しているか、参加プロセス中に中間者攻撃を受けないかを確認するために使用することができます。このフルトークンは、クラスタの初期起動前、クラスタCAが生成される前に生成することはできません。
+### 問題が発生しました、どこで助けを得ることができますか？
  
-If you are having an issue with deploying K3s, you should:
+K3sのデプロイに問題がある場合、次のようにします：
 
-1) Check the [Known Issues](../known-issues/known-issues.md) page.
+1) [Known Issues](../known-issues/known-issues.md) ページをチェックします。
 
-2) Check that you have resolved any [Additional OS Preparation](../advanced/advanced.md#additional-os-preparations). Run `k3s check-config` and ensure that it passes.
+2) [追加のOS準備](../advanced/advanced.md#additional-os-preparations)を解決したことを確認する。k3s check-config`を実行し、パスしていることを確認します。
 
-3) Search the [K3s GitHub existing issues](https://github.com/k3s-io/k3s/issues) for one that matches your problem.
+3) [K3s GitHub existing issues](https://github.com/k3s-io/k3s/issues)を検索して、あなたの問題にマッチするものを探す。
 
-4) Join the [Rancher Slack](https://slack.rancher.io/) K3s channel to get help.
+4) [Rancher Slack](https://slack.rancher.io/) K3sチャンネルに参加し、ヘルプを得る。
 
-5) Submit a [New Issue](https://github.com/k3s-io/k3s/issues/new/choose) on the K3s Github describing your setup and the issue you are experiencing.
+5) K3s Githubの[New Issue](https://github.com/k3s-io/k3s/issues/new/choose)に、あなたのセットアップと発生している問題を記述して送信します。

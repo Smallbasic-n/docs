@@ -1,26 +1,24 @@
 ---
-title: Secrets Encryption
+title: シークレットの暗号化
 weight: 26
 ---
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-# Secrets Encryption Config
+# シークレット暗号化構成
 
-K3s supports enabling secrets encryption at rest. When first starting the server, passing the flag `--secrets-encryption` will do the following automatically:
+K3s は、保存時のシークレット暗号化の有効化をサポートしています。 サーバーを最初に起動するときに、フラグ `--secrets-encryption` を渡すと、次のことが自動的に行われます。
 
-- Generate an AES-CBC key
-- Generate an encryption config file with the generated key
-- Pass the config to the KubeAPI as encryption-provider-config
-
+- AES-CBC キーを生成する
+- 生成されたキーを使用して暗号化構成ファイルを生成します
+- 構成を暗号化プロバイダー構成として KubeAPI に渡します
 :::tip 
 
-Secrets-encryption cannot be enabled on an existing server without restarting it.  
-Use `curl -sfL https://get.k3s.io | sh -s - server --secrets-encryption` if installing from script, or other methods described in [Configuration Options](../installation/configuration.md#configuration-with-install-script).
-
+Secrets-encryption は、再起動せずに既存のサーバーで有効にすることはできません。
+`curl -sfL https://get.k3s.io | を使用します。 sh -s - server --secrets-encryption` スクリプトからインストールする場合、または [構成オプション](../installation/configuration.md#configuration-with-install-script) で説明されているその他の方法。
 :::
 
-Example of the encryption config file:
+暗号化構成ファイルの例:
 ```json
 {
   "kind": "EncryptionConfiguration",
@@ -50,43 +48,40 @@ Example of the encryption config file:
 }
 ```
 
-## Secrets Encryption Tool
-
+## シークレット暗号化ツール
 :::info Version Gate
-Available as of [v1.21.8+k3s1](https://github.com/k3s-io/k3s/releases/tag/v1.21.8%2Bk3s1)
+[v1.21.8+k3s1](https://github.com/k3s-io/k3s/releases/tag/v1.21.8%2Bk3s1)で利用可能
 :::
 
-K3s contains a utility tool `secrets-encrypt`, which enables automatic control over the following:
+K3s にはユーティリティ ツール「secrets-encrypt」が含まれており、次の項目を自動制御できます。
 
-- Disabling/Enabling secrets encryption
-- Adding new encryption keys
-- Rotating and deleting encryption keys
-- Reencrypting secrets
+- 秘密の暗号化の無効化/有効化
+- 新しい暗号鍵の追加
+- 暗号鍵のローテーションと削除
+- シークレットの再暗号化
 
-:::caution
-Failure to follow proper procedure for rotating encryption keys can leave your cluster permanently corrupted. Proceed with caution.
+:::cauction
+暗号化キーをローテーションするための適切な手順に従わないと、クラスターが永久に破損したままになる可能性があります。 慎重に進んでください。
 :::
-
-### Encryption Key Rotation
+### 暗号鍵のローテーション
 
 <Tabs>
 <TabItem value="Single-Server" default>
 
-To rotate secrets encryption keys on a single-server cluster:
+単一サーバー クラスタでシークレット暗号化キーをローテーションするには:
 
-- Start the K3s server with the flag `--secrets-encryption`
-
+- フラグ `--secrets-encryption` を指定して K3s サーバーを起動します
 :::note 
-Starting K3s without encryption and enabling it at a later time is currently *not* supported.
+暗号化なしで K3 を起動し、後で有効にすることは、現在サポートされていません。
 :::
 
-1. Prepare
+1. 準備
 
     ```bash
     k3s secrets-encrypt prepare
     ```
 
-2. Kill and restart the K3s server with same arguments. If running K3s as a service:
+2. K3s サーバーを強制終了し、同じ引数で再起動します。 K3s をサービスとして実行している場合:
     ```bash
     # If using systemd
     systemctl restart k3s
@@ -94,14 +89,14 @@ Starting K3s without encryption and enabling it at a later time is currently *no
     rc-service k3s restart
     ```
 
-3. Rotate
+3. 交換
 
     ```bash
     k3s secrets-encrypt rotate
     ```
 
-4. Kill and restart the K3s server with same arguments
-5. Reencrypt
+4. 同じ引数で K3s サーバーを強制終了して再起動します
+5. 再暗号化
     :::info
     K3s will reencrypt ~5 secrets per second.  
     Clusters with large # of secrets can take several minutes to reencrypt.
@@ -112,28 +107,25 @@ Starting K3s without encryption and enabling it at a later time is currently *no
 
 
 </TabItem>
-<TabItem value="High-Availability" default>
+<TabItem value="高可用" default>
 
-The steps are the same for both embedded DB and external DB clusters.
+手順は、組み込み DB クラスターと外部 DB クラスターの両方で同じです。
 
-To rotate secrets encryption keys on HA setups:
-
+HA セットアップでシークレット暗号化キーをローテーションするには:
 :::note Notes
 
-- Starting K3s without encryption and enabling it at a later time is currently *not* supported.
-- While not required, it is recommended that you pick one server node from which to run the `secrets-encrypt` commands.
-
+- 暗号化なしで K3 を起動し、後で有効にすることは、現在サポートされていません。
+- 必須ではありませんが、「secrets-encrypt」コマンドを実行するサーバー ノードを 1 つ選択することをお勧めします。
 :::
 
-1. Start up all three K3s servers with the `--secrets-encryption` flag. For brevity, the servers will be referred to as S1, S2, S3.
+1. `--secrets-encryption` フラグを指定して 3 つの K3s サーバーをすべて起動します。 簡潔にするために、サーバーは S1、S2、S3 と呼ばれます。
 
-2. Prepare on S1
-
+2. S1 で準備する
     ```bash
     k3s secrets-encrypt prepare
     ```
 
-3. Kill and restart S1 with same arguments. If running K3s as a service:
+3. S1 を強制終了し、同じ引数で再起動します。 K3s をサービスとして実行している場合:
     ```bash
     # If using systemd
     systemctl restart k3s
@@ -141,47 +133,45 @@ To rotate secrets encryption keys on HA setups:
     rc-service k3s restart
     ```
 
-4. Once S1 is up, kill and restart the S2 and S3
+4. S1 が起動したら、S2 と S3 を強制終了して再起動します。
 
-5. Rotate on S1
-
+5. S1上で交換
     ```bash
     k3s secrets-encrypt rotate
     ```
 
-6. Kill and restart S1 with same arguments
-7. Once S1 is up, kill and restart the S2 and S3
+6. S1 を強制終了し、同じ引数で再起動します。
+7. S1 が起動したら、S2 と S3 を強制終了して再起動します。
 
-8. Reencrypt on S1
+8. S1 で再暗号化する
     :::info
-    K3s will reencrypt ~5 secrets per second.  
-    Clusters with large # of secrets can take several minutes to reencrypt.
+K3 は 1 秒あたり最大 5 つのシークレットを再暗号化します。
+     シークレットの数が多いクラスターは、再暗号化に数分かかる場合があります。
     :::
     ```bash
     k3s secrets-encrypt reencrypt
     ```
 
-9. Kill and restart S1 with same arguments
-10. Once S1 is up, kill and restart the S2 and S3
+9. S1 を強制終了し、同じ引数で再起動します。
+10. S1 が起動したら、S2 と S3 を強制終了して再起動します。
 
 </TabItem>
 </Tabs>
 
-### Secrets Encryption Disable/Enable
+### シークレット暗号化の無効化/有効化
 <Tabs>
 <TabItem value="Single-Server" default>
 
-After launching a server with `--secrets-encryption` flag, secrets encryption can be disabled.
+`--secrets-encryption` フラグを指定してサーバーを起動した後、シークレットの暗号化を無効にすることができます。
 
-To disable secrets encryption on a single-node cluster:
+単一ノード クラスタでシークレットの暗号化を無効にするには:
 
-1. Disable
-
+1. 無効にする
     ```bash
     k3s secrets-encrypt disable
     ```
 
-2. Kill and restart the K3s server with same arguments. If running K3s as a service:
+2. K3s サーバーを強制終了し、同じ引数で再起動します。 K3s をサービスとして実行している場合:
     ```bash
     # If using systemd
     systemctl restart k3s
@@ -189,24 +179,21 @@ To disable secrets encryption on a single-node cluster:
     rc-service k3s restart
     ```
 
-3. Reencrypt with flags
-
+3. フラグを付けて再暗号化する
     ```bash
     k3s secrets-encrypt reencrypt --force --skip
     ```
 
-To re-enable secrets encryption on a single node cluster:
+単一ノード クラスタでシークレットの暗号化を再度有効にするには:
 
-1. Enable
-
+1. 有効にする
     ```bash
     k3s secrets-encrypt enable
     ```
 
-2. Kill and restart the K3s server with same arguments
+2. K3s サーバーを強制終了し、同じ引数で再起動します。
 
-3. Reencrypt with flags
-
+3. フラグを付けて再暗号化する
     ```bash
     k3s secrets-encrypt reencrypt --force --skip
     ```
@@ -214,23 +201,22 @@ To re-enable secrets encryption on a single node cluster:
 </TabItem>
 <TabItem value="High-Availability" default>
 
-After launching a HA cluster with `--secrets-encryption` flags, secrets encryption can be disabled.
+「--secrets-encryption」フラグを使用して HA クラスターを起動した後、シークレットの暗号化を無効にすることができます。
 
-:::note
-While not required, it is recommended that you pick one server node from which to run the `secrets-encrypt` commands.
+：：：ノート
+必須ではありませんが、「secrets-encrypt」コマンドを実行するサーバー ノードを 1 つ選択することをお勧めします。
 :::
 
-For brevity, the three servers used in this guide will be referred to as S1, S2, S3.
+簡潔にするために、このガイドで使用する 3 つのサーバーを S1、S2、S3 と呼びます。
 
-To disable secrets encryption on a HA cluster:
+HA クラスターでシークレットの暗号化を無効にするには:
 
-1. Disable on S1
-
+1. S1で無効にする
     ```bash
     k3s secrets-encrypt disable
     ```
 
-2. Kill and restart S1 with same arguments. If running K3s as a service:
+2. S1 を強制終了し、同じ引数で再起動します。 K3s をサービスとして実行している場合:
     ```bash
     # If using systemd
     systemctl restart k3s
@@ -238,28 +224,25 @@ To disable secrets encryption on a HA cluster:
     rc-service k3s restart
     ```
 
-3. Once S1 is up, kill and restart the S2 and S3
+3. S1 が起動したら、S2 と S3 を強制終了して再起動します。
 
 
-4. Reencrypt with flags on S1
-
+4. S1 のフラグを使用して再暗号化する
     ```bash
     k3s secrets-encrypt reencrypt --force --skip
     ```
 
-To re-enable secrets encryption on a HA cluster:
+HA クラスターでシークレットの暗号化を再度有効にするには:
 
-1. Enable on S1
-
+1. S1 で有効にする
     ```bash
     k3s secrets-encrypt enable
     ```
 
-2. Kill and restart S1 with same arguments
-3. Once S1 is up, kill and restart the S2 and S3
+2. S1 を強制終了し、同じ引数で再起動します。
+3. S1 が起動したら、S2 と S3 を強制終了して再起動します。
 
-4. Reencrypt with flags on S1
-
+4. S1 のフラグを使用して再暗号化する
     ```bash
     k3s secrets-encrypt reencrypt --force --skip
     ```
@@ -267,10 +250,10 @@ To re-enable secrets encryption on a HA cluster:
 </TabItem>
 </Tabs>
 
-### Secrets Encryption Status
-The secrets-encrypt tool includes a `status` command that displays information about the current status of secrets encryption on the node.
+### シークレット暗号化ステータス
+secrets-encrypt ツールには、ノードでのシークレット暗号化の現在のステータスに関する情報を表示する「status」コマンドが含まれています。
 
-An example of the command on a single-server node:  
+単一サーバー ノードでのコマンドの例:
 ```bash
 $ k3s secrets-encrypt status
 Encryption Status: Enabled
@@ -283,7 +266,7 @@ Active  Key Type  Name
 
 ```
 
-Another example on HA cluster, after rotating the keys, but before restarting the servers:  
+キーをローテーションした後、サーバーを再起動する前の、HA クラスターでの別の例:
 ```bash
 $ k3s secrets-encrypt status
 Encryption Status: Enabled
@@ -297,13 +280,13 @@ Active  Key Type  Name
 
 ```
 
-Details on each section are as follows:  
+各セクションの詳細は次のとおりです。
 
-- __Encryption Status__: Displayed whether secrets encryption is disabled or enabled on the node  
-- __Current Rotation Stage__: Indicates the current rotation stage on the node.  
-  Stages are: `start`, `prepare`, `rotate`, `reencrypt_request`, `reencrypt_active`, `reencrypt_finished`  
-- __Server Encryption Hashes__: Useful for HA clusters, this indicates whether all servers are on the same stage with their local files. This can be used to identify whether a restart of servers is required before proceeding to the next stage. In the HA example above, node-1 and node-2 have different hashes, indicating that they currently do not have the same encryption configuration. Restarting the servers will sync up their configuration.
-- __Key Table__: Summarizes information about the secrets encryption keys found on the node.  
-  * __Active__: The "*" indicates which, if any, of the keys are currently used for secrets encryption. An active key is used by Kubernetes to encrypt any new secrets.
-  * __Key Type__: All keys using this tool are `AES-CBC` type. See more info [here.](https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/#providers)
-  * __Name__: Name of the encryption key.  
+- __Encryption Status__: ノードでシークレットの暗号化が無効になっているか有効になっているかが表示されます
+- __Current Rotation Stage__: ノードの現在のローテーション ステージを示します。
+   ステージは次のとおりです: `start`、`prepare`、`rotate`、`reencrypt_request`、`reencrypt_active`、`reencrypt_finished`
+- __サーバー暗号化ハッシュ__: HA クラスターに役立ちます。これは、すべてのサーバーがローカル ファイルと同じ段階にあるかどうかを示します。 これは、次の段階に進む前にサーバーの再起動が必要かどうかを識別するために使用できます。 上記の HA の例では、ノード 1 とノード 2 は異なるハッシュを持ち、現在同じ暗号化構成を持っていないことを示しています。 サーバーを再起動すると、構成が同期されます。
+- __Key Table__: ノードで見つかったシークレット暗号化キーに関する情報を要約します。
+   * __Active__: "*" は、シークレットの暗号化に現在使用されているキーがあれば、それを示します。 アクティブなキーは、新しいシークレットを暗号化するために Kubernetes によって使用されます。
+   * __Key Type__: このツールを使用するすべてのキーは「AES-CBC」タイプです。 詳細については [こちら] (https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/#providers) を参照してください。
+   * __Name__: 暗号化キーの名前。

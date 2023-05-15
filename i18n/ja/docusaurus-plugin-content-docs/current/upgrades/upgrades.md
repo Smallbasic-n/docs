@@ -1,24 +1,24 @@
 ---
-title: "Upgrades"
+title: "アップグレード"
 weight: 25
 ---
 
-### Upgrading your K3s cluster
+### K3s クラスターのアップグレード
 
-[Manual Upgrades](manual.md) describes several techniques for upgrading your cluster manually. It can also be used as a basis for upgrading through third-party Infrastructure-as-Code tools like [Terraform](https://www.terraform.io/).
+[手動アップグレード](manual.md) では、クラスターを手動でアップグレードするためのいくつかの手法について説明しています。 また、[Terraform](https://www.terraform.io/) などのサードパーティの Infrastructure-as-Code ツールによるアップグレードの基礎としても使用できます。
 
-[Automated Upgrades](automated.md) describes how to perform Kubernetes-native automated upgrades using Rancher's [system-upgrade-controller](https://github.com/rancher/system-upgrade-controller).
+[Automated Upgrades](automated.md) では、Rancher の [system-upgrade-controller](https://github.com/rancher/system-upgrade-controller) を使用して Kubernetes ネイティブの自動アップグレードを実行する方法について説明しています。
 
-### Version-specific caveats
+### バージョン固有の注意事項
 
-- **Traefik:** If Traefik is not disabled, K3s versions 1.20 and earlier will install Traefik v1, while K3s versions 1.21 and later will install Traefik v2, if v1 is not already present. To upgrade from the older Traefik v1 to Traefik v2, please refer to the [Traefik documentation](https://doc.traefik.io/traefik/migration/v1-to-v2/) and use the [migration tool](https://github.com/traefik/traefik-migration-tool).
+- **Traefik:** Traefik が無効になっていない場合、K3s バージョン 1.20 以前は Traefik v1 をインストールしますが、K3s バージョン 1.21 以降は Traefik v2 をインストールします (v1 がまだ存在しない場合)。 古い Traefik v1 から Traefik v2 にアップグレードするには、[Traefik ドキュメント](https://doc.traefik.io/traefik/migration/v1-to-v2/) を参照し、[移行ツール](https ://github.com/traefik/traefik-migration-tool)。
 
-- **K3s bootstrap data:** If you are using K3s in an HA configuration with an external SQL datastore, and your server (control-plane) nodes were not started with the `--token` CLI flag, you will no longer be able to add additional K3s servers to the cluster without specifying the token. Ensure that you retain a copy of this token, as it is required when restoring from backup. Previously, K3s did not enforce the use of a token when using external SQL datastores. 
-    - The affected versions are <= v1.19.12+k3s1, v1.20.8+k3s1, v1.21.2+k3s1; the patched versions are v1.19.13+k3s1, v1.20.9+k3s1, v1.21.3+k3s1.
+- **K3s ブートストラップ データ:** 外部 SQL データストアを使用する HA 構成で K3s を使用していて、サーバー (コントロール プレーン) ノードが「--token」CLI フラグで起動されていない場合、 トークンを指定せずに追加の K3s サーバーをクラスターに追加できます。 バックアップから復元するときに必要になるため、このトークンのコピーを必ず保持してください。 以前は、K3s は、外部 SQL データストアを使用するときにトークンの使用を強制しませんでした。
+     - 影響を受けるバージョンは <= v1.19.12+k3s1、v1.20.8+k3s1、v1.21.2+k3s1 です。 パッチが適用されたバージョンは、v1.19.13+k3s1、v1.20.9+k3s1、v1.21.3+k3s1 です。
 
-    - You may retrieve the token value from any server already joined to the cluster as follows:
+     - 次のように、クラスターに既に参加しているサーバーからトークン値を取得できます。
 ```bash
 cat /var/lib/rancher/k3s/server/token
 ```
 
-- **Experimental Dqlite:** The experimental embedded Dqlite data store was deprecated in K3s v1.19.1. Please note that upgrades from experimental Dqlite to experimental embedded etcd are not supported. If you attempt an upgrade, it will not succeed, and data will be lost.
+- **実験的な Dqlite:** 実験的な埋め込み Dqlite データ ストアは、K3s v1.19.1 で廃止されました。 実験的な Dqlite から実験的な組み込み etcd へのアップグレードはサポートされていないことに注意してください。 アップグレードを試みても成功せず、データが失われます。

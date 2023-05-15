@@ -1,139 +1,138 @@
 ---
-title: K3s Resource Profiling
-shortTitle: Resource Profiling
+title: K3s リソースプロファイリング
+shortTitle: リソースプロファイリング
 weight: 1
 ---
 
-This section captures the results of tests to determine minimum resource requirements for K3s.
+このセクションでは、K3 の最小リソース要件を決定するためのテストの結果をキャプチャします。
 
-The results are summarized as follows:
+結果は次のように要約されます。
 
-| Components |  Processor | Min CPU | Min RAM with Kine/SQLite | Min RAM with Embedded etcd |
-|------------|-----|----------|-------------------------|---------------------------|
-| K3s server with a workload  | Intel(R) Xeon(R) Platinum 8124M CPU, 3.00 GHz | 10% of a core | 768 M | 896 M |
-| K3s cluster with a single agent  | Intel(R) Xeon(R) Platinum 8124M CPU, 3.00 GHz | 10% of a core | 512 M | 768 M |
-| K3s agent | Intel(R) Xeon(R) Platinum 8124M CPU, 3.00 GHz | 5% of a core | 256 M | 256 M |
-| K3s server with a workload  | Pi4B BCM2711, 1.50 GHz | 20% of a core | 768 M | 896 M |
-| K3s cluster with a single agent | Pi4B BCM2711, 1.50 GHz | 20% of a core | 512 M | 768 M |
-| K3s agent  | Pi4B BCM2711, 1.50 GHz | 10% of a core | 256 M | 256 M |
+| | コンポーネント | プロセッサ | 最小 CPU | Kine/SQLite での最小 RAM | etcd が組み込まれた最小 RAM |
+|------------|-----|----------|--------------------- ------|--------------------------|
+| | ワークロードのある K3s サーバー | Intel(R) Xeon(R) Platinum 8124M CPU、3.00 GHz | コアの 10% | 768 メートル | 896 メートル |
+| | 単一エージェントの K3s クラスター | Intel(R) Xeon(R) Platinum 8124M CPU、3.00 GHz | コアの 10% | 512M | 768 メートル |
+| | K3s エージェント | Intel(R) Xeon(R) Platinum 8124M CPU、3.00 GHz | コアの 5% | 256 メートル | 256 メートル |
+| | ワークロードのある K3s サーバー | Pi4B BCM2711、1.50GHz | コアの 20% | 768 メートル | 896 メートル |
+| | 単一エージェントの K3s クラスター | Pi4B BCM2711、1.50GHz | コアの 20% | 512M | 768 メートル |
+| | K3s エージェント | Pi4B BCM2711、1.50GHz | コアの 10% | 256 メートル | 256 メートル |
 
-- [Scope of Resource Testing](#scope-of-resource-testing)
-- [Components Included for Baseline Measurements](#components-included-for-baseline-measurements)
-- [Methodology](#methodology)
-- [Environment](#environment)
-- [Baseline Resource Requirements](#baseline-resource-requirements)
-  - [K3s Server with a Workload](#k3s-server-with-a-workload)
-  - [K3s Cluster with a Single Agent](#k3s-cluster-with-a-single-agent)
-  - [K3s Agent](#k3s-agent)
-- [Analysis](#analysis)
-  - [Primary Resource Utilization Drivers](#primary-resource-utilization-drivers)
-  - [Preventing Agents and Workloads from Interfering with the Cluster Datastore](#preventing-agents-and-workloads-from-interfering-with-the-cluster-datastore)
+- [リソース テストの範囲](#リソース テストの範囲)
+- [ベースライン測定に含まれるコンポーネント](#components-included-for-baseline-measurements)
+- [方法論](#methodology)
+- [環境](#環境)
+- [ベースライン リソース要件](#baseline-resource-requirements)
+   - [ワークロードのある K3s サーバー](#k3s-server-with-a-workload)
+   - [単一エージェントの K3s クラスター](#k3s-cluster-with-a-single-agent)
+   - [K3s エージェント](#k3s-agent)
+- [分析](#分析)
+   - [主要なリソース使用率のドライバー](#primary-resource-utilization-drivers)
+   - [エージェントとワークロードがクラスタ データストアに干渉しないようにする](#エージェントとワークロードがクラスタ データストアに干渉するのを防ぐ)
 
-## Scope of Resource Testing
+## リソーステストの範囲
 
-The resource tests were intended to address the following problem statements:
+リソース テストは、次の問題ステートメントに対処することを目的としていました。
 
-- On a single-node cluster, determine the legitimate minimum amount of CPU, memory, and IOPs that should be set aside to run the entire K3s stack server stack, assuming that a real workload will be deployed on the cluster.
-- On an agent (worker) node, determine the legitimate minimum amount of CPU, memory, and IOPs that should be set aside for the Kubernetes and K3s control plane components (the kubelet and k3s agent).
+- 単一ノードのクラスターで、実際のワークロードがクラスターにデプロイされると仮定して、K3s スタック サーバー スタック全体を実行するために確保する必要がある CPU、メモリ、および IOP の正当な最小量を決定します。
+- エージェント (ワーカー) ノードで、Kubernetes および K3s コントロール プレーン コンポーネント (kubelet および k3s エージェント) 用に確保する必要がある CPU、メモリ、および IOP の正当な最小量を決定します。
 
-## Components Included for Baseline Measurements
+## ベースライン測定に含まれるコンポーネント
 
-The tested components are:
+テスト済みのコンポーネントは次のとおりです。
 
-* K3s 1.19.2 with all packaged components enabled
-* Prometheus + Grafana monitoring stack
-* Kubernetes Example PHP Guestbook app
+* パッケージ化されたすべてのコンポーネントが有効になっている K3s 1.19.2
+* Prometheus + Grafana モニタリング スタック
+* Kubernetes サンプル PHP ゲストブック アプリ
 
-These are baseline figures for a stable system using only K3s packaged components (Traefik Ingress, Klipper lb, local-path storage) running a standard monitoring stack (Prometheus and Grafana) and the Guestbook example app.
+これらは、K3s パッケージ コンポーネント (Traefik Ingress、Klipper lb、ローカル パス ストレージ) のみを使用し、標準の監視スタック (Prometheus および Grafana) と Guestbook サンプル アプリを実行する安定したシステムの基準値です。
 
-Resource figures including IOPS are for the Kubernetes datastore and control plane only, and do not include overhead for system-level management agents or logging, container image management, or any workload-specific requirements. 
+IOPS を含むリソースの数値は、Kubernetes データストアとコントロール プレーンのみを対象としており、システム レベルの管理エージェントやロギング、コンテナー イメージ管理、またはワークロード固有の要件のオーバーヘッドは含まれていません。
+## 方法論
 
-## Methodology
+Prometheus v2.21.0 のスタンドアロン インスタンスを使用して、apt 経由でインストールされた「prometheus-node-exporter」を使用して、ホストの CPU、メモリ、およびディスク IO 統計を収集しました。
 
-A standalone instance of Prometheus v2.21.0 was used to collect host CPU, memory, and disk IO statistics using `prometheus-node-exporter` installed via apt.
+「systemd-cgtop」を使用して、systemd cgroup レベルの CPU とメモリ使用率をスポット チェックしました。 「system.slice/k3s.service」は、K3s と containerd の両方のリソース使用率を追跡しますが、個々のポッドは「kubepods」階層の下にあります。
 
-`systemd-cgtop` was used to spot-check systemd cgroup-level CPU and memory utilization. `system.slice/k3s.service` tracks resource utilization for both K3s and containerd, while individual pods are under the `kubepods` hierarchy.
+サーバーおよびエージェント プロセスに統合された kubelet エクスポーターを使用して、「process_resident_memory_bytes」および「go_memstats_alloc_bytes」メトリックから追加の詳細な K3s メモリ使用率データが収集されました。
 
-Additional detailed K3s memory utilization data was collected from the `process_resident_memory_bytes` and `go_memstats_alloc_bytes` metrics using the kubelet exporter integrated into the server and agent processes.
+使用率の数値は、説明されているワークロードを実行しているノードでの定常状態の動作からの 95 パーセンタイルの読み取り値に基づいています。
 
-Utilization figures were based on 95th percentile readings from steady state operation on nodes running the described workloads.
+＃＃ 環境
 
-## Environment
+OS: Ubuntu 20.04 x86_64、aarch64
 
-OS: Ubuntu 20.04 x86_64, aarch64
+ハードウェア:
 
-Hardware:
+- AWS c5d.xlarge - 4 コア、8 GB RAM、NVME SSD
+- Raspberry Pi 4 Model B - 4 コア、8 GB RAM、クラス 10 SDHC
 
-- AWS c5d.xlarge - 4 core, 8 GB RAM, NVME SSD
-- Raspberry Pi 4 Model B - 4 core, 8 GB RAM, Class 10 SDHC
+## ベースラインのリソース要件
 
-## Baseline Resource Requirements
+このセクションでは、K3s エージェント、ワークロードを持つ K3s サーバー、および 1 つのエージェントを持つ K3s サーバーの最小リソース要件を決定するためのテストの結果をキャプチャします。
 
-This section captures the results of tests to determine minimum resource requirements for the K3s agent, the K3s server with a workload, and the K3s server with one agent.
+### ワークロードのある K3s サーバー
 
-### K3s Server with a Workload
+これらは、K3s サーバーがワークロードとリソースを共有する単一ノード クラスターの要件です。
 
-These are the requirements for a single-node cluster in which the K3s server shares resources with a workload.
+CPU 要件は次のとおりです。
 
-The CPU requirements are:
-
-| Resource Requirement | Tested Processor  |
+| | リソース要件 | テスト済みプロセッサー |
 |-----------|-----------------|
-| 10% of a core | Intel(R) Xeon(R) Platinum 8124M CPU, 3.00 GHz |
-| 20% of a core | Low-power processor such as Pi4B BCM2711, 1.50 GHz |
+| | コアの 10% | Intel(R) Xeon(R) Platinum 8124M CPU、3.00 GHz |
+| | コアの 20% | Pi4B BCM2711、1.50 GHz などの低電力プロセッサ |
 
-The IOPS and memory requirements are:
+IOPS とメモリの要件は次のとおりです。
 
-| Tested Datastore | IOPS | KiB/sec | Latency | RAM  |
+| | テスト済みデータストア | IOPS | KiB/秒 | レイテンシ | ラム |
 |-----------|------|---------|---------|--------|
-| Kine/SQLite | 10 | 500     | < 10 ms | 768 M  |
-| Embedded etcd | 50 |  250  | < 5 ms  | 896 M  |
+| | カイン/SQLite | 10 | 500 | < 10 ミリ秒 | 768 メートル |
+| | 埋め込み etcd | 50 | 250 | < 5 ミリ秒 | 896 メートル |
 
-### K3s Cluster with a Single Agent
+### 単一のエージェントを持つ K3s クラスター
 
-These are the baseline requirements for a K3s cluster with a K3s server node and a K3s agent, but no workload.
+これらは、K3s サーバー ノードと K3s エージェントを備えた K3s クラスターのベースライン要件ですが、ワークロードはありません。
 
-The CPU requirements are:
+CPU 要件は次のとおりです。
 
-| Resource Requirement | Tested Processor  |
+| | リソース要件 | テスト済みプロセッサー |
 |-----------|-----------------|
-| 10% of a core | Intel(R) Xeon(R) Platinum 8124M CPU, 3.00 GHz |
-| 20% of a core | Pi4B BCM2711, 1.50 GHz |
+| | コアの 10% | Intel(R) Xeon(R) Platinum 8124M CPU、3.00 GHz |
+| | コアの 20% | Pi4B BCM2711、1.50GHz |
 
-The IOPS and memory requirements are:
+IOPS とメモリの要件は次のとおりです。
 
-| Datastore | IOPS | KiB/sec | Latency | RAM    |
+| | データストア | IOPS | KiB/秒 | レイテンシ | ラム |
 |-----------|------|---------|---------|--------|
-| Kine/SQLite | 10 | 500     | < 10 ms | 512 M  |
-| Embedded etcd | 50 |  250  | < 5 ms  | 768 M  |
+| | カイン/SQLite | 10 | 500 | < 10 ミリ秒 | 512M |
+| | 埋め込み etcd | 50 | 250 | < 5 ミリ秒 | 768 メートル |
 
-### K3s Agent
+### K3s エージェント
 
-The CPU requirements are:
+CPU 要件は次のとおりです。
 
- Resource Requirement | Tested Processor   |
+  リソース要件 | テスト済みプロセッサー |
 |-----------|-----------------|
-| 5% of a core | Intel(R) Xeon(R) Platinum 8124M CPU, 3.00 GHz |
-| 10% of a core | Pi4B BCM2711, 1.50 GHz |
+| | コアの 5% | Intel(R) Xeon(R) Platinum 8124M CPU、3.00 GHz |
+| | コアの 10% | Pi4B BCM2711、1.50GHz |
 
-256 M of RAM is required.
+256M の RAM が必要です。
 
-## Analysis
+＃＃ 分析
 
-This section captures what has the biggest impact on K3s server and agent utilization, and how the cluster datastore can be protected from interference from agents and workloads.
+このセクションでは、K3s サーバーとエージェントの使用率に最も大きな影響を与えるものと、クラスター データストアをエージェントやワークロードからの干渉から保護する方法について説明します。
 
-### Primary Resource Utilization Drivers
+### リソース使用率の主な要因
 
-K3s server utilization figures are primarily driven by support of the Kubernetes datastore (kine or etcd), API Server, Controller-Manager, and Scheduler control loops, as well as any management tasks necessary to effect changes to the state of the system. Operations that place additional load on the Kubernetes control plane, such as creating/modifying/deleting resources, will cause temporary spikes in utilization. Using operators or apps that make extensive use of the Kubernetes datastore (such as Rancher or other Operator-type applications) will increase the server's resource requirements. Scaling up the cluster by adding additional nodes or creating many cluster resources will increase the server's resource requirements.
+K3s サーバーの使用率は、主に Kubernetes データストア (kine または etcd)、API サーバー、コントローラー マネージャー、およびスケジューラー制御ループのサポートと、システムの状態を変更するために必要な管理タスクによって決まります。 リソースの作成/変更/削除など、Kubernetes コントロール プレーンに追加の負荷をかける操作は、使用率に一時的なスパイクを引き起こします。 Kubernetes データストアを広範囲に使用するオペレーターまたはアプリ (Rancher や他のオペレーター タイプのアプリケーションなど) を使用すると、サーバーのリソース要件が増加します。 ノードを追加するか、多くのクラスター リソースを作成してクラスターをスケールアップすると、サーバーのリソース要件が増加します。
 
-K3s agent utilization figures are primarily driven by support of container lifecycle management control loops. Operations that involve managing images, provisioning storage, or creating/destroying containers will cause temporary spikes in utilization. Image pulls in particular are typically highly CPU and IO bound, as they involve decompressing image content to disk. If possible, workload storage (pod ephemeral storage and volumes) should be isolated from the agent components (/var/lib/rancher/k3s/agent) to ensure that there are no resource conflicts.
+K3s エージェントの使用率は、主にコンテナ ライフサイクル管理制御ループのサポートによってもたらされます。 イメージの管理、ストレージのプロビジョニング、またはコンテナーの作成/破棄を伴う操作は、使用率に一時的なスパイクを引き起こします。 特にイメージのプルは、イメージ コンテンツをディスクに解凍する必要があるため、通常、CPU と IO に大きく依存します。 可能であれば、リソースの競合がないように、ワークロード ストレージ (ポッドの一時ストレージとボリューム) をエージェント コンポーネント (/var/lib/rancher/k3s/agent) から分離する必要があります。
 
-### Preventing Agents and Workloads from Interfering with the Cluster Datastore
+### エージェントとワークロードがクラスタ データストアに干渉しないようにする
 
-When running in an environment where the server is also hosting workload pods, care should be taken to ensure that agent and workload IOPS do not interfere with the datastore.
+サーバーがワークロード ポッドもホストしている環境で実行している場合は、エージェントとワークロードの IOPS がデータストアに干渉しないように注意する必要があります。
 
-This can be best accomplished by placing the server components (/var/lib/rancher/k3s/server) on a different storage medium than the agent components (/var/lib/rancher/k3s/agent), which include the containerd image store.
+これは、サーバー コンポーネント (/var/lib/rancher/k3s/server) をエージェント コンポーネント (/var/lib/rancher/k3s/agent) とは別のストレージ メディアに配置することで実現できます。これには、containerd イメージ ストアが含まれます。 .
 
-Workload storage (pod ephemeral storage and volumes) should also be isolated from the datastore.
+ワークロード ストレージ (ポッドのエフェメラル ストレージとボリューム) も、データストアから分離する必要があります。
 
-Failure to meet datastore throughput and latency requirements may result in delayed response from the control plane and/or failure of the control plane to maintain system state.
+データストアのスループットとレイテンシの要件を満たさないと、コントロール プレーンからの応答が遅れたり、コントロール プレーンがシステム状態を維持できなくなったりする可能性があります。

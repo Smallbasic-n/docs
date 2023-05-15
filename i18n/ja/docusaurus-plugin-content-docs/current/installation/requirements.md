@@ -1,105 +1,100 @@
 ---
-title: Requirements
+title: システム要求
 weight: 1
 ---
 
-K3s is very lightweight, but has some minimum requirements as outlined below.
+K3s は非常に軽量ですが、以下に概説するようにいくつかの最小要件があります。
 
-Whether you're configuring K3s to run in a container or as a native Linux service, each node running K3s should meet the following minimum requirements. These requirements are baseline for K3s and its packaged components, and do not include resources consumed by the workload itself.
+K3s をコンテナーで実行するように構成するか、ネイティブの Linux サービスとして実行するように構成するかに関係なく、K3s を実行する各ノードは次の最小要件を満たす必要があります。 これらの要件は、K3s とそのパッケージ コンポーネントのベースラインであり、ワークロード自体によって消費されるリソースは含まれません。
 
-## Prerequisites
+## 前提条件
 
-Two nodes cannot have the same hostname.
+2 つのノードが同じホスト名を持つことはできません。
 
-If multiple nodes will have the same hostname, or if hostnames may be reused by an automated provisioning system, use the `--with-node-id` option to append a random suffix for each node, or devise a unique name to pass with `--node-name` or `$K3S_NODE_NAME` for each node you add to the cluster.
+複数のノードが同じホスト名を持つ場合、またはホスト名が自動プロビジョニング システムによって再利用される可能性がある場合は、`--with-node-id` オプションを使用して各ノードにランダムなサフィックスを追加するか、一意の名前を考案して渡します クラスターに追加する各ノードの「--node-name」または「$K3S_NODE_NAME」。
+## オペレーティングシステム
 
-## Operating Systems
+K3s は、最新の Linux システムのほとんどで動作することが期待されています。
 
-K3s is expected to work on most modern Linux systems.
+一部の OS には特定の要件があります。
 
-Some OSs have specific requirements:
+- **(Red Hat/CentOS) Enterprise Linux** を使用している場合は、[これらの手順](../advanced/advanced.md#red-hat-enterprise-linux--centos) に従って追加のセットアップを行います。
+- **Raspberry Pi OS** を使用している場合は、[これらの手順](../advanced/advanced.md#raspberry-pi) に従ってレガシー iptables に切り替えます。
 
-- If you are using **(Red Hat/CentOS) Enterprise Linux**, follow [these steps](../advanced/advanced.md#red-hat-enterprise-linux--centos) for additional setup.
-- If you are using **Raspberry Pi OS**, follow [these steps](../advanced/advanced.md#raspberry-pi) to switch to legacy iptables.
+Rancher が管理する K3s クラスターでテストされた OS の詳細については、[Rancher のサポートおよびメンテナンス条件](https://rancher.com/support-maintenance-terms/) を参照してください。
 
-For more information on which OSs were tested with Rancher managed K3s clusters, refer to the [Rancher support and maintenance terms.](https://rancher.com/support-maintenance-terms/)
+## ハードウェア
 
-## Hardware
+ハードウェア要件は、展開のサイズに基づいて調整されます。 ここでは、最低限の推奨事項について概説します。
 
-Hardware requirements scale based on the size of your deployments. Minimum recommendations are outlined here.
+* RAM: 512MB 以上 (1GB 以上を推奨)
+* CPU: 最小1コア
+[K3s Resource Profiling](../reference/resource-profiling.md) は、K3s エージェント、ワークロードを持つ K3s サーバー、および 1 つのエージェントを持つ K3s サーバーの最小リソース要件を決定するためのテストの結果をキャプチャします。 また、K3s サーバーとエージェントの使用率に最も大きな影響を与えるもの、およびエージェントとワークロードからの干渉からクラスター データストアを保護する方法についての分析も含まれています。
 
-*    RAM: 512MB Minimum (we recommend at least 1GB)
-*    CPU: 1 Minimum
+#### ディスク
 
-[K3s Resource Profiling](../reference/resource-profiling.md) captures the results of tests to determine minimum resource requirements for the K3s agent, the K3s server with a workload, and the K3s server with one agent. It also contains analysis about what has the biggest impact on K3s server and agent utilization, and how the cluster datastore can be protected from interference from agents and workloads.
+K3s のパフォーマンスは、データベースのパフォーマンスに依存します。 最適な速度を確保するために、可能な場合は SSD を使用することをお勧めします。 ディスクのパフォーマンスは、SD カードまたは eMMC を使用する ARM デバイスによって異なります。
 
-#### Disks
+## ネットワーキング
 
-K3s performance depends on the performance of the database. To ensure optimal speed, we recommend using an SSD when possible. Disk performance will vary on ARM devices utilizing an SD card or eMMC.
+K3s サーバーには、すべてのノードからアクセスできるポート 6443 が必要です。
 
-## Networking
+ノードは、Flannel VXLAN が使用されている場合は UDP ポート 8472 を介して、または Flannel Wireguard バックエンドが使用されている場合は UDP ポート 51820 および 51821 (IPv6 を使用している場合) を介して他のノードに到達できる必要があります。 ノードは他のポートをリッスンしてはなりません。 K3s はリバース トンネリングを使用して、ノードがサーバーへのアウトバウンド接続を確立し、すべての kubelet トラフィックがそのトンネルを通過するようにします。 ただし、Flannel を使用せず、独自のカスタム CNI を提供する場合、Flannel に必要なポートは K3s には必要ありません。
 
-The K3s server needs port 6443 to be accessible by all nodes.
+メトリクス サーバーを使用する場合は、すべてのノードがポート 10250 で相互にアクセスできる必要があります。
 
-The nodes need to be able to reach other nodes over UDP port 8472 when Flannel VXLAN is used or over UDP ports 51820 and 51821 (when using IPv6) when Flannel Wireguard backend is used. The node should not listen on any other port. K3s uses reverse tunneling such that the nodes make outbound connections to the server and all kubelet traffic runs through that tunnel. However, if you do not use Flannel and provide your own custom CNI, then the ports needed by Flannel are not needed by K3s.
+組み込みの etcd を使用して高可用性を実現することを計画している場合、サーバー ノードはポート 2379 および 2380 で相互にアクセスできる必要があります。
 
-If you wish to utilize the metrics server, all nodes must be accessible to each other on port 10250.
+> **重要:** ノードの VXLAN ポートは、誰でもアクセスできるようにクラスター ネットワークを開くため、外部に公開しないでください。 ポート 8472 へのアクセスを無効にするファイアウォール/セキュリティ グループの背後でノードを実行します。
+> **警告:** Flannel は [Bridge CNI プラグイン](https://www.cni.dev/plugins/current/main/bridge/) に依存して、トラフィックを切り替える L2 ネットワークを作成します。 NET_RAW 機能を備えた不正ポッドは、その L2 ネットワークを悪用して、[ARP スプーフィング](https://static.sched.com/hosted_files/kccncna19/72/ARP%20DNS%20spoof.pdf) などの攻撃を仕掛けることができます。 したがって、[kubernetes ドキュメント](https://kubernetes.io/docs/concepts/security/pod-security-standards/) に記載されているように、信頼できないポッドで NET_RAW を無効にする制限付きプロファイルを設定してください。
+<figcaption>K3s サーバー ノードのインバウンド ルール</figcaption>
 
-If you plan on achieving high availability with embedded etcd, server nodes must be accessible to each other on ports 2379 and 2380.
+| | プロトコル | ポート | ソース | 目的地 | 説明
+|---------|-----------|-----------|-------------| ------------
+| | TCP | TCP | 2379-2380 | サーバー | サーバー | etcd が組み込まれた HA にのみ必要
+| | TCP | TCP | 6443 | エージェント | サーバー | K3s スーパーバイザーと Kubernetes API サーバー
+| | UDP | 8472 | すべてのノード | すべてのノード | Flannel VXLAN にのみ必要
+| | TCP | TCP | 10250 | すべてのノード | すべてのノード | Kubelet メトリクス
+| | UDP | 51820 | すべてのノード | すべてのノード | IPv4 を使用する Flannel Wireguard にのみ必要
+| | UDP | 51821 | すべてのノード | すべてのノード | IPv6 を使用する Flannel Wireguard にのみ必要
 
-> **Important:** The VXLAN port on nodes should not be exposed to the world as it opens up your cluster network to be accessed by anyone. Run your nodes behind a firewall/security group that disables access to port 8472.
-> **Warning:** Flannel relies on the [Bridge CNI plugin](https://www.cni.dev/plugins/current/main/bridge/) to create a L2 network that switches traffic. Rogue pods with NET_RAW capabilities can abuse that L2 network to launch attacks such as [ARP spoofing](https://static.sched.com/hosted_files/kccncna19/72/ARP%20DNS%20spoof.pdf). Therefore, as documented in the [kubernetes docs](https://kubernetes.io/docs/concepts/security/pod-security-standards/), please set a restricted profile that disables NET_RAW on non-trustable pods.
+通常、すべてのアウトバウンド トラフィックが許可されます。
 
-<figcaption>Inbound Rules for K3s Server Nodes</figcaption>
+## 大規模クラスター
 
-| Protocol | Port      | Source    | Destination | Description
-|----------|-----------|-----------|-------------|------------
-| TCP      | 2379-2380 | Servers   | Servers     | Required only for HA with embedded etcd
-| TCP      | 6443      | Agents    | Servers     | K3s supervisor and Kubernetes API Server
-| UDP      | 8472      | All nodes | All nodes   | Required only for Flannel VXLAN
-| TCP      | 10250     | All nodes | All nodes   | Kubelet metrics
-| UDP      | 51820     | All nodes | All nodes   | Required only for Flannel Wireguard with IPv4
-| UDP      | 51821     | All nodes | All nodes   | Required only for Flannel Wireguard with IPv6
+ハードウェア要件は、K3s クラスターのサイズに基づいています。 本番および大規模なクラスターの場合は、外部データベースを使用した高可用性セットアップを使用することをお勧めします。 本番環境の外部データベースには、次のオプションが推奨されます。
 
-Typically all outbound traffic is allowed.
-
-## Large Clusters
-
-Hardware requirements are based on the size of your K3s cluster. For production and large clusters, we recommend using a high-availability setup with an external database. The following options are recommended for the external database in production:
-
-- MySQL
+-MySQL
 - PostgreSQL
 - etcd
+### CPU とメモリ
 
-### CPU and Memory
+高可用性 K3s サーバーのノードの CPU とメモリの最小要件は次のとおりです。
 
-The following are the minimum CPU and memory requirements for nodes in a high-availability K3s server:
+| | 展開サイズ | ノード | ノード VCPU | ラム |
+|:------:|:--------:|:-----:|:-----:|
+| | 小さい | 最大 10 | 2 | 4GB |
+| | ミディアム | ミディアム | 最大 100 | 4 | 8GB |
+| | 大 | 最大 250 | 8 | 16GB |
+| | 特大 | 最大 500 | 16 | 32GB |
+| | XX-ラージ | 500+ | 32 | 64GB |
 
-| Deployment Size |   Nodes   | VCPUS |  RAM  |
-|:---------------:|:---------:|:-----:|:-----:|
-|      Small      |  Up to 10 |   2   |  4 GB |
-|      Medium     | Up to 100 |   4   |  8 GB |
-|      Large      | Up to 250 |   8   | 16 GB |
-|     X-Large     | Up to 500 |   16  | 32 GB |
-|     XX-Large    |   500+    |   32  | 64 GB |
+### ディスク
 
-### Disks
+クラスターのパフォーマンスは、データベースのパフォーマンスに依存します。 最適な速度を確保するために、常に SSD ディスクを使用して K3s クラスターをバックアップすることをお勧めします。 クラウド プロバイダーでは、最大 IOPS を可能にする最小サイズも使用する必要があります。
 
-The cluster performance depends on database performance. To ensure optimal speed, we recommend always using SSD disks to back your K3s cluster. On cloud providers, you will also want to use the minimum size that allows the maximum IOPS.
+### ネットワーキング
 
-### Network
+ポッドの IP が不足しないように、クラスター CIDR のサブネット サイズを大きくすることを検討する必要があります。 これを行うには、起動時に「--cluster-cidr」オプションを K3s サーバーに渡します。
 
-You should consider increasing the subnet size for the cluster CIDR so that you don't run out of IPs for the pods. You can do that by passing the `--cluster-cidr` option to K3s server upon starting.
+### データベース
 
-### Database
+K3s は、MySQL、PostgreSQL、MariaDB、etcd などのさまざまなデータベースをサポートしています。以下は、大規模なクラスターを実行するために必要なデータベース リソースのサイジング ガイドです。
 
-K3s supports different databases including MySQL, PostgreSQL, MariaDB, and etcd, the following is a sizing guide for the database resources you need to run large clusters:
-
-| Deployment Size |   Nodes   | VCPUS |  RAM  |
-|:---------------:|:---------:|:-----:|:-----:|
-|      Small      |  Up to 10 |   1   |  2 GB |
-|      Medium     | Up to 100 |   2   |  8 GB |
-|      Large      | Up to 250 |   4   | 16 GB |
-|     X-Large     | Up to 500 |   8   | 32 GB |
-|     XX-Large    |   500+    |   16  | 64 GB |
-
+|  展開サイズ | ノード | ノード VCPU | ラム |
+|:-----:|:--------:|:-----:|:-----:|
+|  小さい | 最大 10 | 1 | 2GB |
+|  ミディアム | ミディアム | 最大 100 | 2 | 8GB |
+|  大 | 最大 250 | 4 | 16GB |
+|  特大 | 最大 500 | 8 | 32GB |
+|  XX-ラージ | 500+ | 16 | 64GB |

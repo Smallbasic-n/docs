@@ -13,13 +13,16 @@ module.exports = {
   trailingSlash: false,
   i18n: {
     defaultLocale: "en",
-    locales: ["en", "zh"],
+    locales: ["en", "zh", "ja"],
     localeConfigs: {
       en: {
         label: "English",
       },
       zh: {
         label: "简体中文",
+      },
+      ja: {
+        label: "日本語",
       },
     },
   },

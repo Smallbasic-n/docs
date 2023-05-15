@@ -1,88 +1,83 @@
 ---
-title: "Air-Gap Install"
+title: "エアギャップインストール"
 weight: 60
 ---
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-You can install K3s in an air-gapped environment using two different methods. An air-gapped environment is any environment that is not directly connected to the Internet. You can either deploy a private registry and mirror docker.io, or you can manually deploy images such as for small clusters.
+K3sは、2種類の方法でエアギャップ環境にインストールすることができます。エアギャップ環境とは、インターネットに直接接続されていない環境のことです。プライベートレジストリを導入してdocker.ioをミラーリングするか、小規模クラスタ用などのイメージを手動でデプロイすることができます。
 
-## Private Registry Method
+## プライベートレジストリ方式
 
-This document assumes you have already created your nodes in your air-gap environment and have a Docker private registry on your bastion host.
+このドキュメントは、あなたがすでにエアギャップ環境でノードを作成し、bastionホスト上でDockerプライベートレジストリを設定していることを前提としています。
 
-If you have not yet set up a private Docker registry, refer to the official documentation [here](https://docs.docker.com/registry/deploying/#run-an-externally-accessible-registry).
+まだDockerのプライベートレジストリを設定していない場合は、公式ドキュメント[こちら](https://docs.docker.com/registry/deploying/#run-an-externally-accessible-registry)を参照してください。
 
-### Create the Registry YAML
+### レジストリのYAMLを作成する
 
-Follow the [Private Registry Configuration](private-registry.md) guide to create and configure the registry.yaml file.
+[プライベートレジストリの設定](private-registry.md)のガイドに従って、registry.yamlファイルを作成し設定します。
 
-Once you have completed this, you may now go to the [Install K3s](#install-k3s) section below.
+これが完了したら、以下の[K3sのインストール](#install-k3s)のセクションに進んでください。
 
 
-## Manually Deploy Images Method
+## 手動でイメージを配置する方法
 
-We are assuming you have created your nodes in your air-gap environment.
-This method requires you to manually deploy the necessary images to each node and is appropriate for edge deployments where running a private registry is not practical.
+エアギャップ環境でノードを作成したことを想定しています。
+この方法では、必要なイメージを各ノードに手動で配置する必要があり、プライベートレジストリを実行することが現実的でないエッジ展開に適しています。
 
-### Prepare the Images Directory and K3s Binary
-Obtain the images tar file for your architecture from the [releases](https://github.com/k3s-io/k3s/releases) page for the version of K3s you will be running.
+### イメージディレクトリとK3sバイナリの準備
+実行するK3sのバージョンの[releases](https://github.com/k3s-io/k3s/releases)ページから、あなたのアーキテクチャに対応したimages tarファイルを入手する。
 
-Place the tar file in the `images` directory, for example:
-
+このtarファイルを、例えば`images`ディレクトリに配置します：
 ```bash
 sudo mkdir -p /var/lib/rancher/k3s/agent/images/
 sudo cp ./k3s-airgap-images-$ARCH.tar /var/lib/rancher/k3s/agent/images/
 ```
 
-Place the k3s binary at `/usr/local/bin/k3s` and ensure it is executable.
+k3sのバイナリを`/usr/local/bin/k3s`に配置し、実行可能であることを確認します。
 
-Follow the steps in the next section to install K3s.
+次節の手順でK3sをインストールする。
 
-## Install K3s
+## K3sのインストール
 
-### Prerequisites
+### 前提条件
 
-- Before installing K3s, complete the [Private Registry Method](#private-registry-method) or the [Manually Deploy Images Method](#manually-deploy-images-method) above to prepopulate the images that K3s needs to install.
-- Download the K3s binary from the [releases](https://github.com/k3s-io/k3s/releases) page, matching the same version used to get the airgap images. Place the binary in `/usr/local/bin` on each air-gapped node and ensure it is executable.
-- Download the K3s install script at [get.k3s.io](https://get.k3s.io). Place the install script anywhere on each air-gapped node, and name it `install.sh`.
+- K3sをインストールする前に、上記の[Private Registry Method](#private-registry-method) または [Manually Deploy Images Method](#manually-deploy-images-method) を実行して、K3sのインストールに必要なイメージを事前に入手してください。
+- airgapイメージを取得するために使用したものと同じバージョンで、[releases](https://github.com/k3s-io/k3s/releases)ページからK3sバイナリをダウンロードします。バイナリを各 air-gapped ノードの `/usr/local/bin` に置き、それが実行可能であることを確認します。
+- K3sのインストールスクリプトを [get.k3s.io](https://get.k3s.io) でダウンロードします。インストールスクリプトを各Air-Gapノード上の任意の場所に置き、名前を `install.sh` とする。
 
-When running the K3s script with the `INSTALL_K3S_SKIP_DOWNLOAD` environment variable, K3s will use the local version of the script and binary.
+環境変数 `INSTALL_K3S_SKIP_DOWNLOAD` を指定して K3s スクリプトを実行すると、K3s はローカルバージョンのスクリプトとバイナリを使用します。
 
 
-### Installing K3s in an Air-Gapped Environment
+### エアギャップ環境でのK3sのインストール
 
-You can install K3s on one or more servers as described below.
+K3sは、以下のように1台または複数台のサーバーにインストールすることができます。
 
 <Tabs>
-<TabItem value="Single Server Configuration" default>
+<TabItem value="シングルサーバ設定" default>
 
-To install K3s on a single server, simply do the following on the server node:
-
+1台のサーバーにK3sをインストールする場合、サーバーノードで以下の作業を行うだけです：
 ```bash
 INSTALL_K3S_SKIP_DOWNLOAD=true ./install.sh
 ```
 
-Then, to optionally add additional agents do the following on each agent node. Take care to ensure you replace `myserver` with the IP or valid DNS of the server and replace `mynodetoken` with the node token from the server typically at `/var/lib/rancher/k3s/server/node-token`
-
+次に、オプションでエージェントを追加するために、各エージェントノードで以下の操作を行います。`myserver`をサーバーのIPまたは有効なDNSに置き換え、`mynodetoken`をサーバーのノードトークンに置き換えることに注意してください（通常は `/var/lib/rancher/k3s/server/node-token` ）。
 ```bash
 INSTALL_K3S_SKIP_DOWNLOAD=true K3S_URL=https://myserver:6443 K3S_TOKEN=mynodetoken ./install.sh
 ```
 
 </TabItem>
-<TabItem value="High Availability Configuration" default>
+<TabItem value="高可用設定" default>
 
-Reference the [High Availability with an External DB](ha.md) or [High Availability with Embedded DB](ha-embedded.md) guides. You will be tweaking install commands so you specify `INSTALL_K3S_SKIP_DOWNLOAD=true` and run your install script locally instead of via curl. You will also utilize `INSTALL_K3S_EXEC='args'` to supply any arguments to k3s.
+[外部DBを利用した高可用構成](ha.md) または [組み込みDBを利用した高可用構成](ha-embedded.md) ガイドを参照してください。`INSTALL_K3S_SKIP_DOWNLOAD=true`を指定し、インストールスクリプトをcurl経由ではなくローカルで実行するように、インストールコマンドを調整します。また、`INSTALL_K3S_EXEC='args'`を利用して、k3sに任意の引数を与えることになります。
 
-For example, step two of the High Availability with an External DB guide mentions the following:
-
+例えば、「外部DBを利用した高可用構成」ガイドのステップ2では、以下のように言及されています：
 ```bash
 curl -sfL https://get.k3s.io | sh -s - server \
   --datastore-endpoint='mysql://username:password@tcp(hostname:3306)/database-name'
 ```
 
-Instead, you would modify such examples like below:
-
+その代わりに、このような例を以下のように修正することになります：
 ```bash
 INSTALL_K3S_SKIP_DOWNLOAD=true INSTALL_K3S_EXEC='server' K3S_DATASTORE_ENDPOINT='mysql://username:password@tcp(hostname:3306)/database-name' ./install.sh
 ```
@@ -90,32 +85,31 @@ INSTALL_K3S_SKIP_DOWNLOAD=true INSTALL_K3S_EXEC='server' K3S_DATASTORE_ENDPOINT=
 </TabItem>
 </Tabs>
 
->**Note:** K3s additionally provides a `--resolv-conf` flag for kubelets, which may help with configuring DNS in air-gap networks.
+>**注：*** K3sはさらに、kubeletsのための `--resolv-conf` フラグを提供し、エアギャップ・ネットワークにおけるDNSの構成に役立つかもしれません。
 
-## Upgrading
+## アップグレード
 
-### Install Script Method
+### スクリプトのインストール方法
 
-Upgrading an air-gap environment can be accomplished in the following manner:
+エアギャップ環境のアップグレードは、以下の手順で行うことができます：
 
-1. Download the new air-gap images (tar file) from the [releases](https://github.com/k3s-io/k3s/releases) page for the version of K3s you will be upgrading to. Place the tar in the `/var/lib/rancher/k3s/agent/images/` directory on each
-node. Delete the old tar file.
-2. Copy and replace the old K3s binary in `/usr/local/bin` on each node. Copy over the install script at https://get.k3s.io (as it is possible it has changed since the last release). Run the script again just as you had done in the past
-with the same environment variables.
-3. Restart the K3s service (if not restarted automatically by installer).
+1. アップグレードするK3sのバージョンの[releases](https://github.com/k3s-io/k3s/releases)ページから新しいair-gapイメージ(tarファイル)をダウンロードします。このtarファイルを各K3sの `/var/lib/rancher/k3s/agent/images/` ディレクトリに置く。
+ノードを使用します。古い tar ファイルを削除する。
+2. 各ノードの `/usr/local/bin` にある古い K3s バイナリをコピーして置き換える。https://get.k3s.io にあるインストールスクリプトをコピーする（前回のリリースから変更されている可能性があるため）。過去に行ったのと同じように、スクリプトを再度実行する。
+を同じ環境変数で設定してください。
+3. K3sサービスを再起動します（インストーラーによって自動的に再起動されない場合）。
 
 
-### Automated Upgrades Method
+### 自動アップグレードの方法
 
-K3s supports [automated upgrades](../upgrades/automated.md). To enable this in air-gapped environments, you must ensure the required images are available in your private registry.
+K3sは[自動アップグレード](../upgrades/automated.md)をサポートしています。エアギャップ環境でこれを有効にするには、必要なイメージがプライベートレジストリで利用可能であることを確認する必要があります。
 
-You will need the version of rancher/k3s-upgrade that corresponds to the version of K3s you intend to upgrade to. Note, the image tag replaces the `+` in the K3s release with a `-` because Docker images do not support `+`.
+アップグレードしようとするK3sのバージョンに対応するrancher/k3s-upgradeのバージョンが必要です。なお、Dockerイメージは`+`をサポートしていないため、imageタグはK3sリリースの`+`を`-`で置き換えています。
 
-You will also need the versions of system-upgrade-controller and kubectl that are specified in the system-upgrade-controller manifest YAML that you will deploy. Check for the latest release of the system-upgrade-controller [here](https://github.com/rancher/system-upgrade-controller/releases/latest) and download the system-upgrade-controller.yaml to determine the versions you need to push to your private registry. For example, in release v0.4.0 of the system-upgrade-controller, these images are specified in the manifest YAML:
-
+また、デプロイするsystem-upgrade-controllerのマニフェストYAMLに指定されているsystem-upgrade-controllerとkubectlのバージョンも必要です。system-upgrade-controllerの最新リリースを確認し[こちら](https://github.com/rancher/system-upgrade-controller/releases/latest)、system-upgrade-controller.yamlをダウンロードして、プライベートレジストリにプッシュする必要があるバージョンを決定します。例えば、system-upgrade-controller のリリース v0.4.0 では、これらのイメージはマニフェスト YAML で指定されています：
 ```
 rancher/system-upgrade-controller:v0.4.0
 rancher/kubectl:v0.17.0
 ```
 
-Once you have added the necessary rancher/k3s-upgrade, rancher/system-upgrade-controller, and rancher/kubectl images to your private registry, follow the [automated upgrades](../upgrades/automated.md) guide.
+必要なrancher/k3s-upgrade、rancher/system-upgrade-controller、rancher/kubectlイメージをプライベートレジストリに追加したら、 [automated upgrades](../upgrades/automated.md) ガイドに従ってください。

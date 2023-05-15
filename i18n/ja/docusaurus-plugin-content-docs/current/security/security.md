@@ -1,11 +1,11 @@
 ---
-title: "Security"
+title: "セキュリティ"
 weight: 90
 ---
 
-This section describes the methodology and means of securing a K3s cluster. It's broken into 2 sections. These guides assume k3s is running with embedded etcd.
+このセクションでは、K3s クラスターを保護する方法と手段について説明します。 2 つのセクションに分かれています。 これらのガイドは、k3s が組み込みの etcd で実行されていることを前提としています。
 
-The documents below apply to CIS Kubernetes Benchmark v1.23.
+以下のドキュメントは、CIS Kubernetes Benchmark v1.23 に適用されます。
 
-* [Hardening Guide](hardening-guide.md)
-* [CIS Benchmark Self-Assessment Guide](self-assessment.md)
+* [硬化ガイド](hardening-guide.md)
+* [CIS ベンチマーク自己評価ガイド](self-assessment.md)

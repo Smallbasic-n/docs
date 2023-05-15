@@ -1,20 +1,19 @@
 ---
-title: "Volumes and Storage"
+title: "ボリュームとストレージ"
 weight: 30
 ---
 
-When deploying an application that needs to retain data, you’ll need to create persistent storage. Persistent storage allows you to store application data external from the pod running your application. This storage practice allows you to maintain application data, even if the application’s pod fails.
+データを保持する必要があるアプリケーションをデプロイする場合、永続ストレージを作成する必要があります。 永続ストレージを使用すると、アプリケーションを実行しているポッドの外部にアプリケーション データを保存できます。 このストレージ プラクティスにより、アプリケーションのポッドに障害が発生した場合でも、アプリケーション データを維持できます。
 
-A persistent volume (PV) is a piece of storage in the Kubernetes cluster, while a persistent volume claim (PVC) is a request for storage. For details on how PVs and PVCs work, refer to the official Kubernetes documentation on [storage.](https://kubernetes.io/docs/concepts/storage/volumes/)
+永続ボリューム (PV) は Kubernetes クラスター内のストレージの一部であり、永続ボリューム要求 (PVC) はストレージの要求です。 PV と PVC の仕組みの詳細については、[ストレージ] に関する Kubernetes の公式ドキュメント (https://kubernetes.io/docs/concepts/storage/volumes/) を参照してください。
 
-This page describes how to set up persistent storage with a local storage provider, or with [Longhorn.](#setting-up-longhorn)
+このページでは、ローカル ストレージ プロバイダーまたは [Longhorn](#setting-up-longhorn) を使用して永続ストレージをセットアップする方法について説明します。
 
-## What's different about K3s storage?
+## K3s ストレージの違いは何ですか?
 
-K3s removes several optional volume plugins and all built-in (sometimes referred to as "in-tree") cloud providers. We do this in order to achieve a smaller binary size and to avoid dependence on third-party cloud or data center technologies and services, which may not be available in many K3s use cases. We are able to do this because their removal affects neither core Kubernetes functionality nor conformance.
+K3s は、いくつかのオプションのボリューム プラグインとすべての組み込み (「ツリー内」と呼ばれることもある) クラウド プロバイダーを削除します。 これは、より小さなバイナリ サイズを実現し、多くの K3s ユース ケースでは利用できない可能性があるサード パーティのクラウドまたはデータ センターのテクノロジおよびサービスへの依存を回避するために行います。 これを行うことができるのは、それらの削除が Kubernetes のコア機能にも適合性にも影響しないためです。
 
-The following volume plugins have been removed from K3s:
-
+次のボリューム プラグインが K3s から削除されました。
 * cephfs
 * fc
 * flocker
@@ -25,15 +24,14 @@ The following volume plugins have been removed from K3s:
 * rbd
 * storageos
 
-Both components have out-of-tree alternatives that can be used with K3s: The Kubernetes [Container Storage Interface (CSI)](https://github.com/container-storage-interface/spec/blob/master/spec.md) and [Cloud Provider Interface (CPI)](https://kubernetes.io/docs/tasks/administer-cluster/running-cloud-controller/).
+両方のコンポーネントには、K3s で使用できるツリー外の代替手段があります。 ) および [クラウド プロバイダー インターフェイス (CPI)](https://kubernetes.io/docs/tasks/administer-cluster/running-cloud-controller/)。
 
-Kubernetes maintainers are actively migrating in-tree volume plugins to CSI drivers. For more information on this migration, please refer [here](https://kubernetes.io/blog/2021/12/10/storage-in-tree-to-csi-migration-status-update/).
+Kubernetes のメンテナーは、ツリー内のボリューム プラグインを CSI ドライバーに積極的に移行しています。 この移行の詳細については、[こちら](https://kubernetes.io/blog/2021/12/10/storage-in-tree-to-csi-migration-status-update/)を参照してください。
 
-## Setting up the Local Storage Provider
-K3s comes with Rancher's Local Path Provisioner and this enables the ability to create persistent volume claims out of the box using local storage on the respective node. Below we cover a simple example. For more information please reference the official documentation [here](https://github.com/rancher/local-path-provisioner/blob/master/README.md#usage).
+## ローカル ストレージ プロバイダの設定
+K3s には Rancher の Local Path Provisioner が付属しており、これにより、それぞれのノードのローカル ストレージを使用して、すぐに永続的なボリューム クレームを作成することができます。 以下に簡単な例を示します。 詳細については、公式ドキュメント [こちら] (https://github.com/rancher/local-path-provisioner/blob/master/README.md#usage) を参照してください。
 
-Create a hostPath backed persistent volume claim and a pod to utilize it:
-
+hostPath に基づく永続的なボリューム要求と、それを利用するポッドを作成します。
 ### pvc.yaml
 
 ```yaml
@@ -75,45 +73,41 @@ spec:
       claimName: local-path-pvc
 ```
 
-Apply the yaml:
+yamlを適用します。:
 
 ```bash
 kubectl create -f pvc.yaml
 kubectl create -f pod.yaml
 ```
 
-Confirm the PV and PVC are created:
+PV,PVCが作成されたことを確認します。:
 
 ```bash
 kubectl get pv
 kubectl get pvc
 ```
 
-The status should be Bound for each.
+ステータスは、それぞれの Bound である必要があります。
 
-## Setting up Longhorn
-
+## Longhorn のセットアップ
 :::caution
 
-Longhorn does not support ARM32.
-
+Longhorn は ARM32 をサポートしていません。
 ::: 
 
 
-K3s supports [Longhorn](https://github.com/longhorn/longhorn), an open-source distributed block storage system for Kubernetes.
+K3s は、Kubernetes 用のオープンソース分散ブロック ストレージ システムである [Longhorn](https://github.com/longhorn/longhorn) をサポートしています。
 
-Below we cover a simple example. For more information, refer to the [official documentation](https://longhorn.io/docs/latest/).
+以下に簡単な例を示します。 詳細については、[公式ドキュメント](https://longhorn.io/docs/latest/)を参照してください。
 
-Apply the longhorn.yaml to install Longhorn:
-
+longhorn.yaml を適用して Longhorn をインストールします。
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/master/deploy/longhorn.yaml
 ```
 
-Longhorn will be installed in the namespace `longhorn-system`.
+Longhorn は名前空間「longhorn-system」にインストールされます。
 
-Apply the yaml to create the PVC and pod:
-
+yaml を適用して PVC とポッドを作成します。
 ```bash
 kubectl create -f pvc.yaml
 kubectl create -f pod.yaml
@@ -159,11 +153,10 @@ spec:
       claimName: longhorn-volv-pvc
 ```
 
-Confirm the PV and PVC are created:
-
+PV と PVC が作成されたことを確認します。
 ```bash
 kubectl get pv
 kubectl get pvc
 ```
 
-The status should be Bound for each.
+ステータスは、それぞれの Bound である必要があります。

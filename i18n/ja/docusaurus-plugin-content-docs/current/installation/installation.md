@@ -1,22 +1,22 @@
 ---
-title: "Installation"
+title: "インストール"
 weight: 20
 ---
 
-This section contains instructions for installing K3s in various environments. Please ensure you have met the [Requirements](requirements.md) before you begin installing K3s.
+このセクションには、さまざまな環境に K3 をインストールするための手順が含まれています。 K3s のインストールを開始する前に、[要件](requirements.md) を満たしていることを確認してください。
 
-[Configuration Options](configuration.md) provides guidance on the options available to you when installing K3s.
+[構成オプション](configuration.md) は、K3s をインストールするときに使用できるオプションに関するガイダンスを提供します。
 
-[Network Options](network-options.md) provides guidance on the networking options available in k3s.
+[ネットワーク オプション](network-options.md) は、k3s で利用可能なネットワーク オプションに関するガイダンスを提供します。
 
-[High Availability with an External DB](ha.md) details how to set up an HA K3s cluster backed by an external datastore such as MySQL, PostgreSQL, or etcd.
+[外部 DB による高可用性](ha.md) では、MySQL、PostgreSQL、etcd などの外部データストアに基づく HA K3s クラスターをセットアップする方法について詳しく説明しています。
 
-[High Availability with Embedded DB](ha-embedded.md) details how to set up an HA K3s cluster that leverages a built-in distributed database.
+[組み込み DB による高可用性](ha-embedded.md) では、組み込みの分散データベースを利用する HA K3s クラスターをセットアップする方法について詳しく説明しています。
 
-[Air-Gap Installation](airgap.md) details how to set up K3s in environments that do not have direct access to the Internet.
+[エアギャップ インストール](airgap.md) では、インターネットに直接アクセスできない環境で K3 をセットアップする方法について詳しく説明しています。
 
-[Disable Components Flags](disable-flags.md) details how to set up K3s with etcd only nodes and controlplane only nodes
+[コンポーネント フラグを無効にする](disable-flags.md) は、etcd のみのノードとコントロールプレーンのみのノードを使用して K3 をセットアップする方法を詳しく説明しています。
 
-### Uninstalling
+### アンインストール中
 
-If you installed K3s with the help of the `install.sh` script, an uninstall script is generated during installation. The script is created on your node at `/usr/local/bin/k3s-uninstall.sh` (or as `k3s-agent-uninstall.sh`).
+「install.sh」スクリプトを使用して K3s をインストールした場合、インストール中にアンインストール スクリプトが生成されます。 スクリプトはノードの `/usr/local/bin/k3s-uninstall.sh` (または `k3s-agent-uninstall.sh`) に作成されます。

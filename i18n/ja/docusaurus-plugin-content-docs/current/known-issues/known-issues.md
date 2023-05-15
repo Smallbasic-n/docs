@@ -1,28 +1,28 @@
 ---
-title: Known Issues
+title: 既知の問題
 weight: 70
 ---
-The Known Issues are updated periodically and designed to inform you about any issues that may not be immediately addressed in the next upcoming release.
+既知の問題は定期的に更新され、次回のリリースですぐに対処されない可能性がある問題について通知するように設計されています。
 
-### Snap Docker
+### スナップドッカー
 
-If you plan to use K3s with docker, Docker installed via a snap package is not recommended as it has been known to cause issues running K3s.
+Docker で K3s を使用する場合、K3s の実行時に問題が発生することが知られているため、スナップ パッケージを介してインストールされた Docker は推奨されません。
 
-### Iptables
+### iptables
 
-If you are running iptables in nftables mode instead of legacy you might encounter issues. We recommend utilizing newer iptables (such as 1.6.1+) to avoid issues. 
+レガシーではなく nftables モードで iptables を実行している場合、問題が発生する可能性があります。 問題を回避するために、新しい iptables (1.6.1+ など) を使用することをお勧めします。
 
-Additionally, versions 1.8.0-1.8.4 have known issues that can cause K3s to fail. See [Additional OS Preparations](../advanced/advanced.md#old-iptables-versions) for workarounds. 
+さらに、バージョン 1.8.0 ～ 1.8.4 には、K3 が失敗する原因となる既知の問題があります。 回避策については、[その他の OS の準備](../advanced/advanced.md#old-iptables-versions) を参照してください。
 
-### Rootless Mode
+### ルートレスモード
 
-Running K3s with Rootless mode is experimental and has several [known issues.](../advanced/advanced.md#known-issues-with-rootless-mode)
+ルートレス モードで K3 を実行することは実験的なものであり、[既知の問題] がいくつかあります。
 
-# Upgrading Hardened Clusters from v1.24.x to v1.25.x
+# 強化されたクラスターを v1.24.x から v1.25.x にアップグレードする
 
-Kubernetes removed PodSecurityPolicy from v1.25 in favor of Pod Security Standards. You can read more about PSS in the [upstream documentation](https://kubernetes.io/docs/concepts/security/pod-security-standards/). For K3S, there are some manual steps that must be taken if any `PodSecurityPoliciy` has been configured on the nodes.
+Kubernetes は、Pod Security Standards を優先して v1.25 から PodSecurityPolicy を削除しました。 PSS の詳細については、[アップストリーム ドキュメント](https://kubernetes.io/docs/concepts/security/pod-security-standards/) を参照してください。 K3S の場合、ノードで「PodSecurityPoliciy」が構成されている場合は、いくつかの手動の手順を実行する必要があります。
 
-1. On all nodes, update the `kube-apiserver-arg` value to remove the `PodSecurityPolicy` admission-plugin. Add the following arg value instead: `'admission-control-config-file=/var/lib/rancher/k3s/server/psa.yaml'`, but do NOT restart or upgrade K3S yet. Below is an example of what a configuration file might look like after this update for the node to be hardened:
+1. すべてのノードで、`kube-apiserver-arg` 値を更新して、`PodSecurityPolicy` アドミッション プラグインを削除します。 代わりに次の引数値を追加します: `'admission-control-config-file=/var/lib/rancher/k3s/server/psa.yaml'` ただし、まだ K3S を再起動またはアップグレードしないでください。 以下は、ノードを強化するためのこの更新後の構成ファイルの例です。
 ```yaml
 protect-kernel-defaults: true
 secrets-encryption: true
@@ -42,7 +42,7 @@ kubelet-arg:
   - 'streaming-connection-idle-timeout=5m'
   - 'make-iptables-util-chains=true'
 ```
-2. Create the `/var/lib/rancher/k3s/server/psa.yaml` file with the following contents. You may want to exempt more namespaces as well. The below example exempts `kube-system` (required), `cis-operator-system` (optional, but useful for when running security scans through Rancher), and `system-upgrade` (required if doing [Automated Upgrades](../upgrades/automated.md)).
+2. 以下の内容で `/var/lib/rancher/k3s/server/psa.yaml` ファイルを作成します。 さらに名前空間を除外することもできます。 以下の例では、`kube-system` (必須)、`cis-operator-system` (オプションですが、Rancher を介してセキュリティ スキャンを実行する場合に役立ちます)、および `system-upgrade` ([自動アップグレード](. ./upgrades/automated.md))。
 ```yaml
 apiVersion: apiserver.config.k8s.io/v1
 kind: AdmissionConfiguration
@@ -63,7 +63,7 @@ plugins:
       runtimeClasses: []
       namespaces: [kube-system, cis-operator-system, system-upgrade]
 ```
-3. Perform the upgrade as normal. If doing [Automated Upgrades](../upgrades/automated.md), ensure that the namespace where the `system-upgrade-controller` pod is running in is setup to be privileged in accordance with the [Pod Security levels](https://kubernetes.io/docs/concepts/security/pod-security-admission/#pod-security-levels):
+3. 通常どおりアップグレードを実行します。 [自動アップグレード](../upgrades/automated.md) を実行する場合は、`system-upgrade-controller` Pod が実行されている名前空間が [Pod セキュリティ レベル](https ://kubernetes.io/docs/concepts/security/pod-security-admission/#pod-security-levels):
 ```yaml
 apiVersion: v1
 kind: Namespace
@@ -79,7 +79,7 @@ metadata:
     pod-security.kubernetes.io/warn: privileged
     pod-security.kubernetes.io/warn-version: v1.25
 ```
-4. After the upgrade is complete, remove any remaining PSP resources from the cluster. In many cases, there may be PodSecurityPolicies and associated RBAC resources in custom files used for hardening within `/var/lib/rancher/k3s/server/manifests/`. Remove those resources and k3s will update automatically. Sometimes, due to timing, some of these may be left in the cluster, in which case you will need to delete them manually. If the [Hardening Guide](../security/hardening-guide.md) was previously followed, you should be able to delete them via the following:
+4. アップグレードが完了したら、クラスタから残りの PSP リソースをすべて削除します。 多くの場合、「/var/lib/rancher/k3s/server/manifests/」内の強化に使用されるカスタム ファイルに、PodSecurityPolicies と関連する RBAC リソースが存在する可能性があります。 これらのリソースを削除すると、k3s が自動的に更新されます。 タイミングによっては、これらの一部がクラスターに残ることがあります。その場合は、手動で削除する必要があります。 [強化ガイド](../security/hardening-guide.md) に従っていた場合は、次の方法で削除できます。
 ```sh
 # Get the resources associated with PSPs
 $ kubectl get roles,clusterroles,rolebindings,clusterrolebindings -A | grep -i psp

@@ -6,29 +6,28 @@ weight: 80
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-This document provides prescriptive guidance for hardening a production installation of K3s. It outlines the configurations and controls required to address Kubernetes benchmark controls from the Center for Internet Security (CIS).
+このドキュメントは、K3s の実稼働インストールを強化するための規範的なガイダンスを提供します。 これは、Center for Internet Security (CIS) からの Kubernetes ベンチマーク コントロールに対処するために必要な構成とコントロールの概要を示しています。
 
-K3s has a number of security mitigations applied and turned on by default and will pass a number of the Kubernetes CIS controls without modification. There are some notable exceptions to this that require manual intervention to fully comply with the CIS Benchmark:
+K3s には、多数のセキュリティ緩和策が適用され、デフォルトでオンになっており、多数の Kubernetes CIS コントロールを変更せずに渡します。 これには、CIS ベンチマークに完全に準拠するために手動で介入する必要があるいくつかの注目すべき例外があります。
 
-1. K3s will not modify the host operating system. Any host-level modifications will need to be done manually.
-2. Certain CIS policy controls for `NetworkPolicies` and `PodSecurityStandards` (`PodSecurityPolicies` on v1.24 and older) will restrict the functionality of the cluster. You must opt into having K3s configure these by adding the appropriate options (enabling of admission plugins) to your command-line flags or configuration file as well as manually applying appropriate policies. Further details are presented in the sections below.
+1. K3s はホスト オペレーティング システムを変更しません。 ホスト レベルの変更は手動で行う必要があります。
+2. `NetworkPolicies` および `PodSecurityStandards` (v1.24 以前の `PodSecurityPolicies`) に対する特定の CIS ポリシー コントロールは、クラスターの機能を制限します。 適切なオプション (アドミッション プラグインの有効化) をコマンドライン フラグまたは構成ファイルに追加し、適切なポリシーを手動で適用することにより、K3s にこれらを構成させることを選択する必要があります。 詳細については、以下のセクションで説明します。
 
-The first section (1.1) of the CIS Benchmark concerns itself primarily with pod manifest permissions and ownership. K3s doesn't utilize these for the core components since everything is packaged into a single binary.
+CIS ベンチマークの最初のセクション (1.1) は、主に Pod マニフェストのアクセス許可と所有権に関連しています。 すべてが単一のバイナリにパッケージ化されているため、K3s はコア コンポーネントにこれらを使用しません。
 
-## Host-level Requirements
+## ホストレベルの要件
 
-There are two areas of host-level requirements: kernel parameters and etcd process/directory configuration. These are outlined in this section.
+ホスト レベルの要件には、カーネル パラメーターと etcd プロセス/ディレクトリ構成の 2 つの領域があります。 これらについては、このセクションで概説します。
 
-### Ensure `protect-kernel-defaults` is set
+### `protect-kernel-defaults`が設定されていることを確認してください
 
-This is a kubelet flag that will cause the kubelet to exit if the required kernel parameters are unset or are set to values that are different from the kubelet's defaults.
+これは、必要なカーネル パラメータが設定されていないか、kubelet のデフォルトとは異なる値に設定されている場合に、kubelet を終了させる kubelet フラグです。
 
-> **Note:** `protect-kernel-defaults` is exposed as a top-level flag for K3s.
+> **注:** `protect-kernel-defaults` は、K3s の最上位フラグとして公開されています。
 
-#### Set kernel parameters
+#### カーネル パラメータを設定する
 
-Create a file called `/etc/sysctl.d/90-kubelet.conf` and add the snippet below. Then run `sysctl -p /etc/sysctl.d/90-kubelet.conf`.
-
+`/etc/sysctl.d/90-kubelet.conf` というファイルを作成し、以下のスニペットを追加します。 次に、「sysctl -p /etc/sysctl.d/90-kubelet.conf」を実行します。
 ```bash
 vm.panic_on_oom=0
 vm.overcommit_memory=1
@@ -37,25 +36,39 @@ kernel.panic_on_oops=1
 kernel.keys.root_maxbytes=25000000
 ```
 
-## Kubernetes Runtime Requirements
+このドキュメントは、K3s の実稼働インストールを強化するための規範的なガイダンスを提供します。 これは、Center for Internet Security (CIS) からの Kubernetes ベンチマーク コントロールに対処するために必要な構成とコントロールの概要を示しています。
 
-The runtime requirements to comply with the CIS Benchmark are centered around pod security (via PSP or PSA), network policies and API Server auditing logs. These are outlined in this section.
+K3s には、多数のセキュリティ緩和策が適用され、デフォルトでオンになっており、多数の Kubernetes CIS コントロールを変更せずに渡します。 これには、CIS ベンチマークに完全に準拠するために手動で介入する必要があるいくつかの注目すべき例外があります。
 
-By default, K3s does not include any pod security or network policies. However, K3s ships with a controller that will enforce network policies, if any are created. K3s doesn't enable auditing by default, so audit log configuration and audit policy must be created manually. By default, K3s runs with the both the `PodSecurity` and `NodeRestriction` admission controllers enabled, among others.
+1. K3s はホスト オペレーティング システムを変更しません。 ホスト レベルの変更は手動で行う必要があります。
+2. `NetworkPolicies` および `PodSecurityStandards` (v1.24 以前の `PodSecurityPolicies`) に対する特定の CIS ポリシー コントロールは、クラスターの機能を制限します。 適切なオプション (アドミッション プラグインの有効化) をコマンドライン フラグまたは構成ファイルに追加し、適切なポリシーを手動で適用することにより、K3s にこれらを構成させることを選択する必要があります。 詳細については、以下のセクションで説明します。
 
-### Pod Security
+CIS ベンチマークの最初のセクション (1.1) は、主に Pod マニフェストのアクセス許可と所有権に関連しています。 すべてが単一のバイナリにパッケージ化されているため、K3s はコア コンポーネントにこれらを使用しません。
 
+## ホストレベルの要件
+
+ホスト レベルの要件には、カーネル パラメーターと etcd プロセス/ディレクトリ構成の 2 つの領域があります。 これらについては、このセクションで概説します。
+
+### `protect-kernel-defaults`が設定されていることを確認してください
+
+これは、必要なカーネル パラメータが設定されていないか、kubelet のデフォルトとは異なる値に設定されている場合に、kubelet を終了させる kubelet フラグです。
+
+> **注:** `protect-kernel-defaults` は、K3s の最上位フラグとして公開されています。
+
+#### カーネル パラメータを設定する
+
+`/etc/sysctl.d/90-kubelet.conf` というファイルを作成し、以下のスニペットを追加します。 次に、「sysctl -p /etc/sysctl.d/90-kubelet.conf」を実行します。
 <Tabs>
-<TabItem value="v1.25 and Newer" default>
+<TabItem value="v1.25以降" default>
 
-K3s v1.25 and newer support [Pod Security Admissions (PSAs)](https://kubernetes.io/docs/concepts/security/pod-security-admission/) for controlling pod security. PSAs are enabled by passing the following flag to the K3s server:
+K3s v1.25 以降では、ポッド セキュリティを制御するための [ポッド セキュリティ アドミッション (PSA)](https://kubernetes.io/docs/concepts/security/pod-security-admission/) がサポートされています。 PSA は、次のフラグを K3s サーバーに渡すことで有効になります。
 ```
 --kube-apiserver-arg="admission-control-config-file=/var/lib/rancher/k3s/server/psa.yaml"
 ```
 
-The policy should be written to a file named `psa.yaml` in `/var/lib/rancher/k3s/server` directory. 
+ポリシーは、「/var/lib/rancher/k3s/server」ディレクトリの「psa.yaml」という名前のファイルに書き込む必要があります。
 
-Here is an example of a compliant PSA:
+準拠した PSA の例を次に示します。
 ```yaml
 apiVersion: apiserver.config.k8s.io/v1
 kind: AdmissionConfiguration
@@ -79,17 +92,15 @@ plugins:
 </TabItem>
 <TabItem value="v1.24 and Older" default>
 
-K3s v1.24 and older support [Pod Security Policies (PSPs)](https://v1-24.docs.kubernetes.io/docs/concepts/security/pod-security-policy/) for controlling pod security. PSPs are enabled by passing the following flag to the K3s server:
-
+K3s v1.24 以前は、ポッド セキュリティを制御するための [ポッド セキュリティ ポリシー (PSP)](https://v1-24.docs.kubernetes.io/docs/concepts/security/pod-security-policy/) をサポートしています。 PSP を有効にするには、次のフラグを K3s サーバーに渡します。
 ```
 --kube-apiserver-arg="enable-admission-plugins=NodeRestriction,PodSecurityPolicy"
 ```
-This will have the effect of maintaining the `NodeRestriction` plugin as well as enabling the `PodSecurityPolicy`. 
+これにより、「NodeRestriction」プラグインを維持し、「PodSecurityPolicy」を有効にする効果があります。
 
-When PSPs are enabled, a policy can be applied to satisfy the necessary controls described in section 5.2 of the CIS Benchmark.
+PSP が有効になっている場合、ポリシーを適用して、CIS ベンチマークのセクション 5.2 で説明されている必要な制御を満たすことができます。
 
-Here is an example of a compliant PSP:
-
+準拠した PSP の例を次に示します。
 ```yaml
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
@@ -129,10 +140,9 @@ spec:
   readOnlyRootFilesystem: false
 ```
 
-For the above PSP to be effective, we need to create a ClusterRole and a ClusterRoleBinding. We also need to include a "system unrestricted policy" which is needed for system-level pods that require additional privileges, and an additional policy that allows sysctls necessary for servicelb to function properly.
+上記の PSP を有効にするには、ClusterRole と ClusterRoleBinding を作成する必要があります。 また、追加の権限を必要とするシステムレベルの Pod に必要な「system unrestricted ポリシー」と、servicelb が適切に機能するために必要な sysctl を許可する追加のポリシーを含める必要があります。
 
-Combining the configuration above with the [Network Policy](#networkpolicies) described in the next section, a single file can be placed in the `/var/lib/rancher/k3s/server/manifests` directory. Here is an example of a `policy.yaml` file: 
-
+上記の構成を次のセクションで説明する [ネットワーク ポリシー](#networkpolicies) と組み合わせて、単一のファイルを `/var/lib/rancher/k3s/server/manifests` ディレクトリに配置できます。 これは `policy.yaml` ファイルの例です:
 ```yaml
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
@@ -363,16 +373,15 @@ spec:
 </Tabs>
 
 
-> **Note:** The Kubernetes critical additions such as CNI, DNS, and Ingress are run as pods in the `kube-system` namespace. Therefore, this namespace will have a policy that is less restrictive so that these components can run properly.
+> **注:** CNI、DNS、Ingress などの Kubernetes の重要な追加機能は、「kube-system」名前空間でポッドとして実行されます。 したがって、この名前空間には、これらのコンポーネントが適切に実行できるように制限の少ないポリシーが設定されます。
 
-### NetworkPolicies
+### ネットワークポリシー
 
-CIS requires that all namespaces have a network policy applied that reasonably limits traffic into namespaces and pods.
+CIS では、すべての名前空間に、名前空間とポッドへのトラフィックを合理的に制限するネットワーク ポリシーが適用されている必要があります。
 
-Network policies should be placed the `/var/lib/rancher/k3s/server/manifests` directory, where they will automatically be deployed on startup.
+ネットワーク ポリシーは、起動時に自動的に展開される「/var/lib/rancher/k3s/server/manifests」ディレクトリに配置する必要があります。
 
-Here is an example of a compliant network policy.
-
+準拠したネットワーク ポリシーの例を次に示します。
 ```yaml
 kind: NetworkPolicy
 apiVersion: networking.k8s.io/v1
@@ -388,8 +397,7 @@ spec:
             name: kube-system
 ```
 
-With the applied restrictions, DNS will be blocked unless purposely allowed. Below is a network policy that will allow for traffic to exist for DNS.
-
+適用された制限により、意図的に許可しない限り、DNS はブロックされます。 以下は、DNS のトラフィックが存在することを許可するネットワーク ポリシーです。
 ```yaml
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -410,10 +418,9 @@ spec:
   - Ingress
 ```
 
-The metrics-server and Traefik ingress controller will be blocked by default if network policies are not created to allow access. Traefik v1 as packaged in K3s version 1.20 and below uses different labels than Traefik v2. Ensure that you only use the sample yaml below that is associated with the version of Traefik present on your cluster.
-
+アクセスを許可するネットワーク ポリシーが作成されていない場合、metrics-server と Traefik イングレス コントローラーはデフォルトでブロックされます。 K3s バージョン 1.20 以下にパッケージ化されている Traefik v1 は、Traefik v2 とは異なるラベルを使用します。 クラスターに存在する Traefik のバージョンに関連付けられている以下のサンプル yaml のみを使用してください。
 <Tabs>
-<TabItem value="v1.21 and Newer" default>
+<TabItem value="v1.21以降" default>
 
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -462,7 +469,7 @@ spec:
 ```
 </TabItem>
 
-<TabItem value="v1.20 and Older" default>
+<TabItem value="v1.20以前" default>
 
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -513,22 +520,19 @@ spec:
 </Tabs>
 
 :::info
-Operators must manage network policies as normal for additional namespaces that are created.
+オペレーターは、作成された追加の名前空間に対して通常どおりネットワーク ポリシーを管理する必要があります。
 :::
 
+### API サーバーの監査設定
 
-### API Server audit configuration
+CIS 要件 1.2.22 から 1.2.25 は、API サーバーの監査ログの構成に関連しています。 監査要件は各ユーザーのポリシーと環境に固有であるため、K3s は既定ではログ ディレクトリと監査ポリシーを作成しません。
 
-CIS requirements 1.2.22 to 1.2.25 are related to configuring audit logs for the API Server. K3s doesn't create by default the log directory and audit policy, as auditing requirements are specific to each user's policies and environment.
-
-The log directory, ideally, must be created before starting K3s. A restrictive access permission is recommended to avoid leaking potential sensitive information.
-
+ログ ディレクトリは、理想的には、K3s を起動する前に作成する必要があります。 潜在的な機密情報の漏えいを避けるために、アクセス許可を制限することをお勧めします。
 ```bash
 sudo mkdir -p -m 700 /var/lib/rancher/k3s/server/logs
 ```
 
-A starter audit policy to log request metadata is provided below. The policy should be written to a file named `audit.yaml` in `/var/lib/rancher/k3s/server` directory. Detailed information about policy configuration for the API server can be found in the Kubernetes [documentation](https://kubernetes.io/docs/tasks/debug-application-cluster/audit/).
-
+リクエストのメタデータをログに記録するスターター監査ポリシーを以下に示します。 ポリシーは、「/var/lib/rancher/k3s/server」ディレクトリの「audit.yaml」という名前のファイルに書き込む必要があります。 API サーバーのポリシー構成に関する詳細情報は、Kubernetes の [ドキュメント](https://kubernetes.io/docs/tasks/debug-application-cluster/audit/) に記載されています。
 ```yaml
 apiVersion: audit.k8s.io/v1
 kind: Policy
@@ -536,15 +540,13 @@ rules:
 - level: Metadata
 ```
 
-Both configurations must be passed as arguments to the API Server as:
-
+両方の構成を次のように引数として API サーバーに渡す必要があります。
 ```bash
 --kube-apiserver-arg='audit-log-path=/var/lib/rancher/k3s/server/logs/audit.log'
 --kube-apiserver-arg='audit-policy-file=/var/lib/rancher/k3s/server/audit.yaml'
 ```
 
-If the configurations are created after K3s is installed, they must be added to K3s' systemd service in `/etc/systemd/system/k3s.service`.
-
+K3s のインストール後に構成を作成する場合は、それらを「/etc/systemd/system/k3s.service」で K3s の systemd サービスに追加する必要があります。
 ```bash
 ExecStart=/usr/local/bin/k3s \
     server \
@@ -552,21 +554,19 @@ ExecStart=/usr/local/bin/k3s \
 	'--kube-apiserver-arg=audit-policy-file=/var/lib/rancher/k3s/server/audit.yaml' \
 ```
 
-K3s must be restarted to load the new configuration.
-
+新しい構成をロードするには、K3 を再起動する必要があります。
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl restart k3s.service
 ```
 
-## Configuration for Kubernetes Components
+## Kubernetes コンポーネントの構成
 
 
-The configuration below should be placed in the [configuration file](../installation/configuration.md#configuration-file), and contains all the necessary remediations to harden the Kubernetes components.
-
+以下の構成は [構成ファイル](../installation/configuration.md#configuration-file) に配置する必要があり、Kubernetes コンポーネントを強化するために必要なすべての修正が含まれています。
 
 <Tabs>
-<TabItem value="v1.25 and Newer" default>
+<TabItem value="v1.25以降" default>
 
 ```yaml
 protect-kernel-defaults: true
@@ -590,7 +590,7 @@ kubelet-arg:
 
 </TabItem>
 
-<TabItem value="v1.24 and Older" default>
+<TabItem value="v1.24 以前" default>
 
 ```yaml
 protect-kernel-defaults: true
@@ -616,10 +616,9 @@ kubelet-arg:
 </Tabs>
 
 
-## Control Plane Execution and Arguments
+## コントロール プレーンの実行と引数
 
-Listed below are the K3s control plane components and the arguments they are given at start, by default. Commented to their right is the CIS 1.6 control that they satisfy.
-
+以下にリストされているのは、K3s コントロール プレーン コンポーネントと、それらがデフォルトで開始時に与えられる引数です。 それらの右側にコメントされているのは、それらが満たす CIS 1.6 コントロールです。
 ```bash
 kube-apiserver 
     --advertise-port=6443 
@@ -718,143 +717,143 @@ kubelet
     --tls-cert-file=/var/lib/rancher/k3s/agent/serving-kubelet.crt        # 4.2.10
     --tls-private-key-file=/var/lib/rancher/k3s/agent/serving-kubelet.key # 4.2.10
 ```
-Additional information about CIS requirements 1.2.22 to 1.2.25 is presented below.
+CIS 要件 1.2.22 から 1.2.25 に関する追加情報を以下に示します。
 
-## Known Issues
-The following are controls that K3s currently does not pass by default. Each gap will be explained, along with a note clarifying whether it can be passed through manual operator intervention, or if it will be addressed in a future release of K3s.
+＃＃ 既知の問題点
+以下は、K3s が現在デフォルトで渡さないコントロールです。 それぞれのギャップについて説明し、オペレーターの手動介入によってそれを通過できるかどうか、または K3s の将来のリリースで対処されるかどうかを明確にするメモを付けます。
 
-### Control 1.2.15
-Ensure that the admission control plugin `NamespaceLifecycle` is set.
+### コントロール 1.2.15
+アドミッション コントロール プラグイン「NamespaceLifecycle」が設定されていることを確認します。
 <details>
-<summary>Rationale</summary>
-Setting admission control policy to `NamespaceLifecycle` ensures that objects cannot be created in non-existent namespaces, and that namespaces undergoing termination are not used for creating the new objects. This is recommended to enforce the integrity of the namespace termination process and also for the availability of the newer objects.
+<summary>根拠</summary>
+アドミッション コントロール ポリシーを「NamespaceLifecycle」に設定すると、存在しない名前空間でオブジェクトを作成できなくなり、終了中の名前空間が新しいオブジェクトの作成に使用されなくなります。 これは、名前空間の終了プロセスの整合性を確保し、新しいオブジェクトを利用できるようにするために推奨されます。
 
-This can be remediated by passing this argument as a value to the `enable-admission-plugins=` and pass that to  `--kube-apiserver-arg=` argument to `k3s server`. An example can be found below.
+これは、この引数を値として「enable-admission-plugins=」に渡し、それを「k3s サーバー」の「--kube-apiserver-arg=」引数に渡すことで修正できます。 以下に例を示します。
 </details>
 
-### Control 1.2.16
-Ensure that the admission control plugin `PodSecurityPolicy` is set.
+### コントロール 1.2.16
+アドミッション コントロール プラグイン「PodSecurityPolicy」が設定されていることを確認します。
 <details>
-<summary>Rationale</summary>
-A Pod Security Policy is a cluster-level resource that controls the actions that a pod can perform and what it has the ability to access. The `PodSecurityPolicy` objects define a set of conditions that a pod must run with in order to be accepted into the system. Pod Security Policies are comprised of settings and strategies that control the security features a pod has access to and hence this must be used to control pod access permissions.
+<summary>根拠</summary>
+Pod セキュリティ ポリシーは、Pod が実行できるアクションと、Pod がアクセスできるものを制御するクラスター レベルのリソースです。 「PodSecurityPolicy」オブジェクトは、Pod がシステムに受け入れられるために実行する必要がある一連の条件を定義します。 Pod セキュリティ ポリシーは、Pod がアクセスできるセキュリティ機能を制御する設定と戦略で構成されているため、これを使用して Pod のアクセス許可を制御する必要があります。
 
-This can be remediated by passing this argument as a value to the `enable-admission-plugins=` and pass that to  `--kube-apiserver-arg=` argument to `k3s server`. An example can be found below.
+これは、この引数を値として「enable-admission-plugins=」に渡し、それを「k3s サーバー」の「--kube-apiserver-arg=」引数に渡すことで修正できます。 以下に例を示します。
 </details>
 
-### Control 1.2.22
-Ensure that the `--audit-log-path` argument is set.
+### コントロール 1.2.22
+`--audit-log-path` 引数が設定されていることを確認してください。
 <details>
-<summary>Rationale</summary>
-Auditing the Kubernetes API Server provides a security-relevant chronological set of records documenting the sequence of activities that have affected system by individual users, administrators or other components of the system. Even though currently, Kubernetes provides only basic audit capabilities, it should be enabled. You can enable it by setting an appropriate audit log path.
+<summary>根拠</summary>
+Kubernetes API サーバーを監査すると、個々のユーザー、管理者、またはシステムの他のコンポーネントによってシステムに影響を与えた一連のアクティビティを文書化する、セキュリティ関連の時系列の一連の記録が提供されます。 現在、Kubernetes は基本的な監査機能しか提供していませんが、有効にする必要があります。 適切な監査ログ パスを設定することで有効にできます。
 
-This can be remediated by passing this argument as a value to the `--kube-apiserver-arg=` argument to `k3s server`. An example can be found below.
+これは、この引数を値として「k3s サーバー」の「--kube-apiserver-arg=」引数に渡すことで修正できます。 以下に例を示します。
 </details>
 
-### Control 1.2.23
-Ensure that the `--audit-log-maxage` argument is set to 30 or as appropriate.
+### コントロール 1.2.23
+`--audit-log-maxage` 引数が 30 または適切に設定されていることを確認します。
 <details>
-<summary>Rationale</summary>
-Retaining logs for at least 30 days ensures that you can go back in time and investigate or correlate any events. Set your audit log retention period to 30 days or as per your business requirements.
+<summary>根拠</summary>
+少なくとも 30 日間ログを保持することで、時間をさかのぼってイベントを調査または関連付けることができます。 監査ログの保持期間を 30 日に設定するか、ビジネス要件に従ってください。
 
-This can be remediated by passing this argument as a value to the `--kube-apiserver-arg=` argument to `k3s server`. An example can be found below.
+これは、この引数を値として「k3s サーバー」の「--kube-apiserver-arg=」引数に渡すことで修正できます。 以下に例を示します。
 </details>
 
-### Control 1.2.24
-Ensure that the `--audit-log-maxbackup` argument is set to 10 or as appropriate.
+### コントロール 1.2.24
+`--audit-log-maxbackup` 引数が 10 または適切に設定されていることを確認します。
 <details>
-<summary>Rationale</summary>
-Kubernetes automatically rotates the log files. Retaining old log files ensures that you would have sufficient log data available for carrying out any investigation or correlation. For example, if you have set file size of 100 MB and the number of old log files to keep as 10, you would approximate have 1 GB of log data that you could potentially use for your analysis.
+<summary>根拠</summary>
+Kubernetes は、ログ ファイルを自動的にローテーションします。 古いログ ファイルを保持することで、調査や関連付けを実行するために十分なログ データを利用できるようになります。 たとえば、ファイル サイズを 100 MB に設定し、保持する古いログ ファイルの数を 10 に設定した場合、分析に使用できるログ データはおよそ 1 GB になります。
 
-This can be remediated by passing this argument as a value to the `--kube-apiserver-arg=` argument to `k3s server`. An example can be found below.
+これは、この引数を値として「k3s サーバー」の「--kube-apiserver-arg=」引数に渡すことで修正できます。 以下に例を示します。
 </details>
 
-### Control 1.2.25
-Ensure that the `--audit-log-maxsize` argument is set to 100 or as appropriate.
+### コントロール 1.2.25
+`--audit-log-maxsize` 引数が 100 または適切に設定されていることを確認します。
 <details>
-<summary>Rationale</summary>
-Kubernetes automatically rotates the log files. Retaining old log files ensures that you would have sufficient log data available for carrying out any investigation or correlation. If you have set file size of 100 MB and the number of old log files to keep as 10, you would approximate have 1 GB of log data that you could potentially use for your analysis.
+<summary>根拠</summary>
+Kubernetes は、ログ ファイルを自動的にローテーションします。 古いログ ファイルを保持することで、調査や関連付けを実行するために十分なログ データを利用できるようになります。 ファイル サイズを 100 MB に設定し、保持する古いログ ファイルの数を 10 に設定した場合、分析に使用できるログ データはおよそ 1 GB になります。
 
-This can be remediated by passing this argument as a value to the `--kube-apiserver-arg=` argument to `k3s server`. An example can be found below.
+これは、この引数を値として「k3s サーバー」の「--kube-apiserver-arg=」引数に渡すことで修正できます。 以下に例を示します。
 </details>
 
-### Control 1.2.26
-Ensure that the `--request-timeout` argument is set as appropriate.
+### コントロール 1.2.26
+`--request-timeout` 引数が適切に設定されていることを確認してください。
 <details>
-<summary>Rationale</summary>
-Setting global request timeout allows extending the API server request timeout limit to a duration appropriate to the user's connection speed. By default, it is set to 60 seconds which might be problematic on slower connections making cluster resources inaccessible once the data volume for requests exceeds what can be transmitted in 60 seconds. But, setting this timeout limit to be too large can exhaust the API server resources making it prone to Denial-of-Service attack. Hence, it is recommended to set this limit as appropriate and change the default limit of 60 seconds only if needed.
+<summary>根拠</summary>
+グローバル リクエスト タイムアウトを設定すると、API サーバーのリクエスト タイムアウト制限を、ユーザーの接続速度に適した期間まで延長できます。 デフォルトでは 60 秒に設定されていますが、低速の接続では問題が発生する可能性があり、リクエストのデータ ボリュームが 60 秒で送信できる量を超えると、クラスター リソースにアクセスできなくなります。 ただし、このタイムアウト制限を大きく設定しすぎると、API サーバーのリソースが使い果たされ、サービス拒否攻撃を受けやすくなります。 したがって、この制限を適切に設定し、必要な場合にのみデフォルトの制限である 60 秒を変更することをお勧めします。
 
-This can be remediated by passing this argument as a value to the `--kube-apiserver-arg=` argument to `k3s server`. An example can be found below.
+これは、この引数を値として「k3s サーバー」の「--kube-apiserver-arg=」引数に渡すことで修正できます。 以下に例を示します。
 </details>
 
-### Control 1.2.27
-Ensure that the `--service-account-lookup` argument is set to true.
+### コントロール 1.2.27
+`--service-account-lookup` 引数が true に設定されていることを確認してください。
 <details>
-<summary>Rationale</summary>
-If `--service-account-lookup` is not enabled, the apiserver only verifies that the authentication token is valid, and does not validate that the service account token mentioned in the request is actually present in etcd. This allows using a service account token even after the corresponding service account is deleted. This is an example of time of check to time of use security issue.
+<summary>根拠</summary>
+「--service-account-lookup」が有効になっていない場合、apiserver は認証トークンが有効であることのみを検証し、リクエストで言及されたサービス アカウント トークンが実際に etcd に存在することを検証しません。 これにより、対応するサービス アカウントが削除された後でも、サービス アカウント トークンを使用できます。 これは、チェック時から使用時までのセキュリティ問題の例です。
 
-This can be remediated by passing this argument as a value to the `--kube-apiserver-arg=` argument to `k3s server`. An example can be found below.
+これは、この引数を値として「k3s サーバー」の「--kube-apiserver-arg=」引数に渡すことで修正できます。 以下に例を示します。
 </details>
 
-### Control 1.2.33
-Ensure that the `--encryption-provider-config` argument is set as appropriate.
+### コントロール 1.2.33
+`--encryption-provider-config` 引数が適切に設定されていることを確認してください。
 <details>
-<summary>Rationale</summary>
-`etcd` is a highly available key-value store used by Kubernetes deployments for persistent storage of all of its REST API objects. These objects are sensitive in nature and should be encrypted at rest to avoid any disclosures.
+<summary>根拠</summary>
+「etcd」は、すべての REST API オブジェクトの永続ストレージのために Kubernetes デプロイメントで使用される高可用性キー値ストアです。 これらのオブジェクトは本質的に機密性が高く、開示を避けるために暗号化する必要があります。
 
-Detailed steps on how to configure secrets encryption in K3s are available in [Secrets Encryption](secrets-encryption.md).
+K3s でシークレットの暗号化を構成する方法の詳細な手順は、[シークレットの暗号化](secrets-encryption.md) で入手できます。
 </details>
 
-### Control 1.2.34
-Ensure that encryption providers are appropriately configured.
+### コントロール 1.2.34
+暗号化プロバイダーが適切に構成されていることを確認してください。
 <details>
-<summary>Rationale</summary>
-Where `etcd` encryption is used, it is important to ensure that the appropriate set of encryption providers is used. Currently, the `aescbc`, `kms` and `secretbox` are likely to be appropriate options.
+<summary>根拠</summary>
+「etcd」暗号化が使用されている場合、適切な暗号化プロバイダーのセットが使用されていることを確認することが重要です。 現在、「aescbc」、「kms」、および「secretbox」が適切なオプションである可能性があります。
 
-This can be remediated by passing a valid configuration to `k3s` as outlined above. Detailed steps on how to configure secrets encryption in K3s are available in [Secrets Encryption](secrets-encryption.md).
+これは、上記のように有効な構成を「k3s」に渡すことで修正できます。 K3s でシークレットの暗号化を構成する方法の詳細な手順は、[シークレットの暗号化](secrets-encryption.md) で入手できます。
 </details>
 
-### Control 1.3.1
-Ensure that the `--terminated-pod-gc-threshold` argument is set as appropriate.
+### コントロール 1.3.1
+`--terminated-pod-gc-threshold` 引数が適切に設定されていることを確認してください。
 <details>
-<summary>Rationale</summary>
-Garbage collection is important to ensure sufficient resource availability and avoiding degraded performance and availability. In the worst case, the system might crash or just be unusable for a long period of time. The current setting for garbage collection is 12,500 terminated pods which might be too high for your system to sustain. Based on your system resources and tests, choose an appropriate threshold value to activate garbage collection.
+<summary>根拠</summary>
+ガベージ コレクションは、十分なリソースの可用性を確保し、パフォーマンスと可用性の低下を回避するために重要です。 最悪の場合、システムがクラッシュするか、長期間使用できなくなる可能性があります。 ガベージ コレクションの現在の設定は 12,500 の終了 Pod であり、システムが維持するには高すぎる可能性があります。 システム リソースとテストに基づいて、ガベージ コレクションをアクティブにする適切なしきい値を選択します。
 
-This can be remediated by passing this argument as a value to the `--kube-apiserver-arg=` argument to `k3s server`. An example can be found below.
+これは、この引数を値として「k3s サーバー」の「--kube-apiserver-arg=」引数に渡すことで修正できます。 以下に例を示します。
 </details>
 
-### Control 3.2.1
-Ensure that a minimal audit policy is created.
+### コントロール 3.2.1
+最小限の監査ポリシーが作成されていることを確認します。
 <details>
-<summary>Rationale</summary>
-Logging is an important detective control for all systems, to detect potential unauthorized access.
+<summary>根拠</summary>
+ロギングは、潜在的な不正アクセスを検出するために、すべてのシステムにとって重要な検出制御です。
 
-This can be remediated by passing controls 1.2.22 - 1.2.25 and verifying their efficacy.
+これは、コントロール 1.2.22 ～ 1.2.25 を渡し、その有効性を検証することで修正できます。
 </details>
 
-### Control 4.2.7
-Ensure that the `--make-iptables-util-chains` argument is set to true.
+### コントロール 4.2.7
+`--make-iptables-util-chains` 引数が true に設定されていることを確認してください。
 <details>
-<summary>Rationale</summary>
-Kubelets can automatically manage the required changes to iptables based on how you choose your networking options for the pods. It is recommended to let kubelets manage the changes to iptables. This ensures that the iptables configuration remains in sync with pods networking configuration. Manually configuring iptables with dynamic pod network configuration changes might hamper the communication between pods/containers and to the outside world. You might have iptables rules too restrictive or too open.
+<summary>根拠</summary>
+Kubelets は、ポッドのネットワーク オプションの選択方法に基づいて、iptables に必要な変更を自動的に管理できます。 kubelets に iptables への変更を管理させることをお勧めします。 これにより、iptables 構成が Pod ネットワーク構成と確実に同期されます。 動的ポッド ネットワーク構成の変更を使用して iptables を手動で構成すると、ポッド/コンテナー間および外部との通信が妨げられる可能性があります。 iptables ルールの制限が厳しすぎるか、またはオープンすぎる可能性があります。
 
-This can be remediated by passing this argument as a value to the `--kube-apiserver-arg=` argument to `k3s server`. An example can be found below.
+これは、この引数を値として「k3s サーバー」の「--kube-apiserver-arg=」引数に渡すことで修正できます。 以下に例を示します。
 </details>
 
-### Control 5.1.5
-Ensure that default service accounts are not actively used
+### コントロール 5.1.5
+デフォルトのサービス アカウントが積極的に使用されていないことを確認する
 <details>
-<summary>Rationale</summary>
-Kubernetes provides a `default` service account which is used by cluster workloads where no specific service account is assigned to the pod.
+<summary>根拠</summary>
+Kubernetes は、特定のサービス アカウントがポッドに割り当てられていないクラスター ワークロードによって使用される「デフォルト」サービス アカウントを提供します。
 
-Where access to the Kubernetes API from a pod is required, a specific service account should be created for that pod, and rights granted to that service account.
+ポッドから Kubernetes API へのアクセスが必要な場合は、そのポッド用に特定のサービス アカウントを作成し、そのサービス アカウントに権限を付与する必要があります。
 
-The default service account should be configured such that it does not provide a service account token and does not have any explicit rights assignments.
+既定のサービス アカウントは、サービス アカウント トークンを提供せず、明示的な権利の割り当てを持たないように構成する必要があります。
 
-This can be remediated by updating the `automountServiceAccountToken` field to `false` for the `default` service account in each namespace.
+これは、各名前空間の「デフォルト」サービス アカウントの「automountServiceAccountToken」フィールドを「false」に更新することで修正できます。
 
-For `default` service accounts in the built-in namespaces (`kube-system`, `kube-public`, `kube-node-lease`, and `default`), K3s does not automatically do this. You can manually update this field on these service accounts to pass the control.
+組み込みの名前空間 (「kube-system」、「kube-public」、「kube-node-lease」、および「default」) の「default」サービス アカウントの場合、K3s はこれを自動的に行いません。 これらのサービス アカウントのこのフィールドを手動で更新して、コントロールを渡すことができます。
 </details>
 
-## Conclusion
+＃＃ 結論
 
-If you have followed this guide, your K3s cluster will be configured to comply with the CIS Kubernetes Benchmark. You can review the [CIS Benchmark Self-Assessment Guide](self-assessment.md) to understand the expectations of each of the benchmark's checks and how you can do the same on your cluster.
+このガイドに従った場合、K3s クラスターは CIS Kubernetes Benchmark に準拠するように構成されます。 [CIS Benchmark Self-Assessment Guide](self-assessment.md) を確認して、ベンチマークの各チェックの期待値と、クラスターで同じことを行う方法を理解できます。

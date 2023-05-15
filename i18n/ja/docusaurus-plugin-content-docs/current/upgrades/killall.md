@@ -1,17 +1,16 @@
 ---
-title: Stopping K3s
+title: K3sの停止
 weight: 4
 ---
 
 
-To allow high availability during upgrades, the K3s containers continue running when the K3s service is stopped.
+アップグレード中に高可用性を実現するために、K3s サービスが停止しても K3s コンテナーは実行を続けます。
 
-To stop all of the K3s containers and reset the containerd state, the `k3s-killall.sh` script can be used.
+すべての K3s コンテナーを停止し、containerd の状態をリセットするには、「k3s-killall.sh」スクリプトを使用できます。
 
-The killall script cleans up containers, K3s directories, and networking components while also removing the iptables chain with all the associated rules. The cluster data will not be deleted.
+killall スクリプトは、コンテナー、K3s ディレクトリ、およびネットワーク コンポーネントをクリーンアップすると同時に、関連するすべてのルールを含む iptables チェーンも削除します。 クラスタ データは削除されません。
 
-To run the killall script from a server node, run:
-
+サーバー ノードから killall スクリプトを実行するには、次のコマンドを実行します。
 ```bash
 /usr/local/bin/k3s-killall.sh
 ```
