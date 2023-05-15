@@ -110,16 +110,29 @@ The egress selector mode may be configured on servers via the `--egress-selector
 * `disabled`: The apiserver does not use agent tunnels to communicate with kubelets or cluster endpoints.
   This mode requires that servers run the kubelet, CNI, and kube-proxy, and have direct connectivity to agents, or the apiserver will not be able to access service endpoints or perform `kubectl exec` and `kubectl logs`.
 * `agent` (default): The apiserver uses agent tunnels to communicate with kubelets.
-  This is mode requires that servers also run the kubelet, CNI, and kube-proxy, or the apiserver will not be able to access service endpoints.
+  This mode requires that the servers also run the kubelet, CNI, and kube-proxy, or the apiserver will not be able to access service endpoints.
 * `pod`: The apiserver uses agent tunnels to communicate with kubelets and service endpoints, routing endpoint connections to the correct agent by watching Nodes.
   **NOTE**: This will not work when using a CNI that uses its own IPAM and does not respect the node's PodCIDR allocation. `cluster` or `agent` should be used with these CNIs instead.
 * `cluster`: The apiserver uses agent tunnels to communicate with kubelets and service endpoints, routing endpoint connections to the correct agent by watching Endpoints.
 
-## Dual-stack installation
+## Dual-stack (IPv4 + IPv6) Networking
 
 :::info Version Gate
 
-Dual-stack networking is supported on K3s v1.21 and above.
+Experimental support is available as of [v1.21.0+k3s1](https://github.com/k3s-io/k3s/releases/tag/v1.21.0%2Bk3s1).  
+Stable support is available as of [v1.23.7+k3s1](https://github.com/k3s-io/k3s/releases/tag/v1.23.7%2Bk3s1). 
+
+:::
+
+:::caution Known Issue 
+
+Kubernetes v1.24 and v1.25 include [an issue](https://github.com/kubernetes/kubernetes/issues/111695) that ignores the node IPv6 addresses if you have a dual-stack environment and you are not using the primary network interface for cluster traffic. To avoid this bug, add the following flag to both K3s servers and agents:
+
+```
+--kubelet-arg="node-ip=0.0.0.0" # To proritize IPv4 traffic
+#OR
+--kubelet-arg="node-ip=::" # To proritize IPv6 traffic
+```
 
 :::
 
@@ -135,21 +148,22 @@ Note that you may configure any valid `cluster-cidr` and `service-cidr` values, 
 
 If you are using a custom CNI plugin, i.e. a CNI plugin other than Flannel, the additional configuration may be required. Please consult your plugin's dual-stack documentation and verify if network policies can be enabled.
 
-> **Warning:** Kubernetes 1.24 and 1.25 include a bug that ignores the node IPv6 addresses if you have a dual-stack environment and you are not using the primary network interface for cluster traffic. To avoid this bug, add the following flag to both K3s servers and agents:
-
-```
---kubelet-arg=node-ip=0.0.0.0"  # If you want to prioritize IPv6 traffic, use "::" instead of "0.0.0.0".
-```
-
-## Single-stack IPv6 installation
+## Single-stack IPv6 Networking
 
 :::info Version Gate
-
-Single-stack IPv6 clusters (clusters without IPv4) are supported on K3s v1.22 and above.
-
+Available as of [v1.22.9+k3s1](https://github.com/k3s-io/k3s/releases/tag/v1.22.9%2Bk3s1)
 :::
 
-> **Warning:** If your IPv6 default route is set by a router advertisement (RA), you will need to set the sysctl `net.ipv6.conf.all.accept_ra=2`; otherwise, the node will drop the default route once it expires. Be aware that accepting RAs could increase the risk of [man-in-the-middle attacks](https://github.com/kubernetes/kubernetes/issues/91507).
+:::caution Known Issue
+If your IPv6 default route is set by a router advertisement (RA), you will need to set the sysctl `net.ipv6.conf.all.accept_ra=2`; otherwise, the node will drop the default route once it expires. Be aware that accepting RAs could increase the risk of [man-in-the-middle attacks](https://github.com/kubernetes/kubernetes/issues/91507).
+:::
+
+Single-stack IPv6 clusters (clusters without IPv4) are supported on K3s using the `--cluster-cidr` and `--service-cidr` flags. This is an example of a valid configuration:
+
+```bash
+--cluster-cidr=2001:cafe:42:0::/56 --service-cidr=2001:cafe:42:1::/112
+```
+
 
 ## Distributed hybrid or multicloud cluster
 
@@ -164,12 +178,24 @@ and on agents:
 --node-external-ip=<AGENT_EXTERNAL_IP>
 ```
 
-where `SERVER_EXTERNAL_IP` is the IP through which we can reach the server node and `AGENT_EXTERNAL_IP` is the IP through which we can reach the agent/worker node. Note that the `K3S_URL` config parameter in the agent/worker should use the `SERVER_EXTERNAL_IP` to be able to connect to it. Remember to check the [Networking Requirements](../installation/requirements.md#networking) and allow access to the listed ports on both internal and external addresses.
+where `SERVER_EXTERNAL_IP` is the IP through which we can reach the server node and `AGENT_EXTERNAL_IP` is the IP through which we can reach the agent node. Note that the `K3S_URL` config parameter in the agent should use the `SERVER_EXTERNAL_IP` to be able to connect to it. Remember to check the [Networking Requirements](../installation/requirements.md#networking) and allow access to the listed ports on both internal and external addresses.
 
 Both `SERVER_EXTERNAL_IP` and `AGENT_EXTERNAL_IP` must have connectivity between them and are normally public IPs.
 
-> **Warning:** The latency between nodes will increase as external connectivity requires more hops. This will reduce the network performance and could also impact the health of the cluster if latency is too high.
+:::info Dynamic IPs
+If nodes are assigned dynamic IPs and the IP changes (e.g. in AWS), you must modify the `--node-external-ip` parameter to reflect the new IP. If running k3s as a service, you must modify `/etc/systemd/system/k3s.service` then run:
 
-> **Warning:** Embedded etcd will not use external IPs for communication. If using embedded etcd; all server nodes must be reachable to each other via their private IPs.
+```bash
+systemctl daemon-reload
+systemctl restart k3s
+```
+:::
 
+:::caution Warning
+The latency between nodes will increase as external connectivity requires more hops. This will reduce the network performance and could also impact the health of the cluster if latency is too high.
+:::
+
+:::caution Warning
+Embedded etcd will not use external IPs for communication. If using embedded etcd; all server nodes must be reachable to each other via their private IPs.
+:::
 

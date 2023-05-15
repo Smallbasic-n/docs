@@ -1,5 +1,5 @@
 ---
-title: "Advanced Options and Configuration"
+title: "Advanced Options / Configuration"
 weight: 45
 aliases:
   - /k3s/latest/en/running/
@@ -11,40 +11,25 @@ import TabItem from '@theme/TabItem';
 
 This section contains advanced information describing the different ways you can run and manage K3s, as well as steps necessary to prepare the host OS for K3s use.
 
-## Certificate Rotation
+## Certificate Management
 
-### Automatic rotation
-By default, certificates in K3s expire in 12 months.
+### Certificate Authority Certificates
 
-If the certificates are expired or have fewer than 90 days remaining before they expire, the certificates are rotated when K3s is restarted.
+K3s generates self-signed Certificate Authority (CA) Certificates during startup of the first server node. These CA certificates are valid for 10 years, and are not automatically renewed.
 
-### Manual rotation
+For information on using custom CA certificates, or renewing the self-signed CA certificates, see the [`k3s certificate rotate-ca` command documentation](../cli/certificate.md#certificate-authority-ca-certificates).
 
-To rotate the certificates manually, use the `k3s certificate rotate` subcommand:
+### Client and Server certificates
 
-```bash
-# Stop K3s
-systemctl stop k3s
-# Rotate certificates
-k3s certificate rotate
-# Start K3s
-systemctl start k3s
-```
+K3s client and server certificates are valid for 365 days from their date of issuance. Any certificates that are expired, or within 90 days of expiring, are automatically renewed every time K3s starts.
 
-Individual or lists of certificates can be rotated by specifying the certificate name:
+For information on manually rotating client and server certificates, see the [`k3s certificate rotate` command documentation](../cli/certificate.md#client-and-server-certificates).
 
-```bash
-k3s certificate rotate --service <SERVICE>,<SERVICE>
-```
+## Token Management
 
-The following certificates can be rotated: `admin`, `api-server`, `controller-manager`, `scheduler`, `k3s-controller`, `k3s-server`, `cloud-controller`, `etcd`, `auth-proxy`, `kubelet`, `kube-proxy`.
-
-
-## Auto-Deploying Manifests
-
-Any file found in `/var/lib/rancher/k3s/server/manifests` will automatically be deployed to Kubernetes in a manner similar to `kubectl apply`, both on startup and when the file is changed on disk. Deleting files out of this directory will not delete the corresponding resources from the cluster.
-
-For information about deploying Helm charts, refer to the section about [Helm.](../helm/helm.md)
+By default, K3s uses a single static token for both servers and agents. This token cannot be changed once the cluster has been created.
+It is possible to enable a second static token that can only be used to join agents, or to create temporary `kubeadm` style join tokens that expire automatically.
+For more information, see the [`k3s token` command documentation](../cli/token.md).
 
 ## Configuring an HTTP proxy
 
@@ -136,7 +121,7 @@ ETCD_URL="https://github.com/etcd-io/etcd/releases/download/${ETCD_VERSION}/etcd
 curl -sL ${ETCD_URL} | sudo tar -zxv --strip-components=1 -C /usr/local/bin
 ```
 
-You may then use etcdctl by configuring it to use the K3s-managed certs and keys for authentication:
+You may then use etcdctl by configuring it to use the K3s-managed certificates and keys for authentication:
 
 ```bash
 sudo etcdctl version \
@@ -149,9 +134,10 @@ sudo etcdctl version \
 
 K3s will generate config.toml for containerd in `/var/lib/rancher/k3s/agent/etc/containerd/config.toml`.
 
-For advanced customization for this file you can create another file called `config.toml.tmpl` in the same directory and it will be used instead.
+For advanced customization for this file you can create another file called `config.toml.tmpl` in the same directory, and it will be used instead.
 
 The `config.toml.tmpl` will be treated as a Go template file, and the `config.Node` structure is being passed to the template. See [this folder](https://github.com/k3s-io/k3s/blob/master/pkg/agent/templates) for Linux and Windows examples on how to use the structure to customize the configuration file.
+The config.Node golang struct is defined [here](https://github.com/k3s-io/k3s/blob/master/pkg/daemons/config/types.go#L37)
 
 ## NVIDIA Container Runtime Support
 
@@ -273,7 +259,7 @@ Some of the configuration used by rootlesskit and slirp4nets can be set by envir
 
 ## Node Labels and Taints
 
-K3s agents can be configured with the options `--node-label` and `--node-taint` which adds a label and taint to the kubelet. The two options only add labels and/or taints [at registration time](../reference/agent-config.md#node-labels-and-taints-for-agents), so they can only be set when the node is first joined to the cluster.
+K3s agents can be configured with the options `--node-label` and `--node-taint` which adds a label and taint to the kubelet. The two options only add labels and/or taints [at registration time](../cli/agent.md#node-labels-and-taints-for-agents), so they can only be set when the node is first joined to the cluster.
 
 All current versions of Kubernetes restrict nodes from registering with most labels with `kubernetes.io` and `k8s.io` prefixes, specifically including the `kubernetes.io/role` label. If you attempt to start a node with a disallowed label, K3s will fail to start. As stated by the Kubernetes authors:
 
@@ -316,11 +302,37 @@ It is recommended to turn off firewalld:
 systemctl disable firewalld --now
 ```
 
+If you wish to keep firewalld enabled, by default, the following rules are required:
+```bash
+firewall-cmd --permanent --add-port=6443/tcp #apiserver
+firewall-cmd --permanent --zone=trusted --add-source=10.42.0.0/16 #pods
+firewall-cmd --permanent --zone=trusted --add-source=10.43.0.0/16 #services
+firewall-cmd --reload
+```
+
+Additional ports may need to be opened depending on your setup. See [Inbound Rules](../installation/requirements.md#inbound-rules-for-k3s-server-nodes) for more information. If you change the default CIDR for pods or services, you will need to update the firewall rules accordingly.
+
 If enabled, it is required to disable nm-cloud-setup and reboot the node:
 ```bash
 systemctl disable nm-cloud-setup.service nm-cloud-setup.timer
 reboot
 ```
+
+### Ubuntu
+
+It is recommended to turn off ufw (uncomplicated firewall):
+```bash
+ufw disable
+```
+
+If you wish to keep ufw enabled, by default, the following rules are required:
+```bash
+ufw allow 6443/tcp #apiserver
+ufw allow from 10.42.0.0/16 to any #pods
+ufw allow from 10.43.0.0/16 to any #services
+```
+
+Additional ports may need to be opened depending on your setup. See [Inbound Rules](../installation/requirements.md#inbound-rules-for-k3s-server-nodes) for more information. If you change the default CIDR for pods or services, you will need to update the firewall rules accordingly.
 
 ### Raspberry Pi
 
@@ -345,47 +357,37 @@ There are several ways to run K3s in Docker:
 <Tabs>
 <TabItem value='K3d' default>
 
-[k3d](https://github.com/k3d-io/k3d) is a utility designed to easily run K3s in Docker.
+[k3d](https://github.com/k3d-io/k3d) is a utility designed to easily run multi-node K3s clusters in Docker.
 
-It can be installed via the [brew](https://brew.sh/) utility on MacOS:
+k3d makes it very easy to create single- and multi-node k3s clusters in docker, e.g. for local development on Kubernetes.
 
-```bash
-brew install k3d
-```
-
-</TabItem>
-<TabItem value="Docker Compose">
-
-A `docker-compose.yml` in the K3s repo serves as an [example](https://github.com/k3s-io/k3s/blob/master/docker-compose.yml) of how to run K3s from Docker. To run `docker-compose` in this repo, run:
-
-```bash
-docker-compose up --scale agent=3
-# kubeconfig is written to current dir
-
-kubectl --kubeconfig kubeconfig.yaml get node
-
-NAME           STATUS   ROLES    AGE   VERSION
-497278a2d6a2   Ready    <none>   11s   v1.13.2-k3s2
-d54c8b17c055   Ready    <none>   11s   v1.13.2-k3s2
-db7a5a5a5bdd   Ready    <none>   12s   v1.13.2-k3s2
-```
-
-To only run the agent in Docker, use `docker-compose up agent`.
+See the [Installation](https://k3d.io/#installation) documentation for more information on how to install and use k3d.
 
 </TabItem>
 <TabItem value="Docker">
 
-To use Docker, `rancher/k3s` images are also available to run the K3s server and agent. 
+To use Docker, `rancher/k3s` images are also available to run the K3s server and agent.
 Using the `docker run` command:
 
 ```bash
 sudo docker run \
-  -d --tmpfs /run \
-  --tmpfs /var/run \
-  -e K3S_URL=${SERVER_URL} \
-  -e K3S_TOKEN=${NODE_TOKEN} \
-  --privileged rancher/k3s:vX.Y.Z
+  --privileged \
+  --name k3s-server-1 \
+  --hostname k3s-server-1 \
+  -p 6443:6443 \
+  -d rancher/k3s:v1.24.10-k3s1 \
+  server
 ```
+:::note
+You must specify a valid K3s version as the tag; the `latest` tag is not maintained.  
+Docker images do not allow a `+` sign in tags, use a `-` in the tag instead.
+:::
+
+Once K3s is up and running, you can copy the admin kubeconfig out of the Docker container for use:
+```bash
+sudo docker cp k3s-server-1:/etc/rancher/k3s/k3s.yaml ~/.kube/config
+```
+
 </TabItem>
 </Tabs>
 
@@ -499,19 +501,17 @@ helm install --create-namespace -n cattle-logging-system rancher-logging --set a
 
 Packets dropped by network policies can be logged. The packet is sent to the iptables NFLOG action, which shows the packet details, including the network policy that blocked it.
 
-To convert NFLOG to log entries, install ulogd2 and configure `[log1]` to read on `group=100`. Then, restart the ulogd2 service for the new config to be committed.
+If there is a lot of traffic, the number of log messages could be very high. To control the log rate on a per-policy basis, set the `limit` and `limit-burst` iptables parameters by adding the following annotations to the network policy in question:
+* `kube-router.io/netpol-nflog-limit=<LIMIT-VALUE>`
+* `kube-router.io/netpol-nflog-limit-burst=<LIMIT-BURST-VALUE>`
 
-Packets hitting the NFLOG action can also be read by using tcpdump:
+Default values are `limit=10/minute` and `limit-burst=10`. Check the [iptables manual](https://www.netfilter.org/documentation/HOWTO/packet-filtering-HOWTO-7.html#:~:text=restrict%20the%20rate%20of%20matches) for more information on the format and possible values for these fields.
+
+To convert NFLOG packets to log entries, install ulogd2 and configure `[log1]` to read on `group=100`. Then, restart the ulogd2 service for the new config to be committed.
+When a packet is blocked by network policy rules, a log message will appear in `/var/log/ulog/syslogemu.log`.
+
+Packets sent to the NFLOG netlink socket can also be read by using command-line tools like tcpdump or tshark:
 ```bash
 tcpdump -ni nflog:100
 ```
-Note however that in this case, the network policy that blocked the packet will not be shown.
-
-
-When a packet is blocked by network policy rules, a log message will appear in `/var/log/ulog/syslogemu.log`. If there is a lot of traffic, the logging file could grow very fast. To control that, set the "limit" and "limit-burst" iptables parameters approprietly by adding the following annotations to the network policy in question:
-```bash
-* kube-router.io/netpol-nflog-limit=<LIMIT-VALUE>
-* kube-router.io.io/netpol-nflog-limit-burst=<LIMIT-BURST-VALUE>
-```
-
-Default values are `limit=10/minute` and `limit-burst=10`. Check the iptables manual for more information on the format and possible values for these fields.
+While more readily available, tcpdump will not show the name of the network policy that blocked the packet. Use wireshark's tshark command instead to display the full NFLOG packet header, including the `nflog.prefix` field that contains the policy name.

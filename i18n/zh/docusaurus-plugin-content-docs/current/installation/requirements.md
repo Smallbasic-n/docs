@@ -13,6 +13,17 @@ K3s 非常轻量，但也有一些最低要求，如下所述。
 
 如果多个节点将具有相同的主机名，或者主机名可以被自动配置系统重复使用，请使用 `--with-node-id` 选项为每个节点附加一个随机后缀，或者使用 `--node-name` 或 `$K3S_NODE_NAME` 为添加到集群的每个节点设计一个独特的名称。
 
+## 架构
+
+K3s 适用于以下架构：
+- x86_64
+- armhf
+- arm64/aarch64
+- s390x
+
+在 `aarch64/arm64` 系统上，操作系统必须使用 4k 页面大小。**RHEL9**、**Ubuntu** 和 **SLES** 都满足这个要求。
+
+
 ## 操作系统
 
 K3s 有望在大多数现代 Linux 系统上运行。
@@ -28,10 +39,12 @@ K3s 有望在大多数现代 Linux 系统上运行。
 
 硬件要求根据你部署的规模而变化。此处概述了最低建议。
 
-* RAM：最低 512MB（建议至少为 1GB）
-* CPU：最低 1
+| Spec | 最低 | 推荐 |
+|------|---------|-------------|
+| CPU | 1 核 | 2 核 |
+| RAM | 512MB | 1 GB |
 
-[K3s 资源分析](../reference/resource-profiling.md)的测试结果用于确定 K3s Agent、具有工作负载的 K3s Server 和具有一个 Agent 的 K3s Server 的最低资源要求。它还包含了有关对 K3s Server 和 Agent 利用率产生最大影响的分析，以及如何保护集群数据存储免受 Agent 和工作负载的干扰。
+[资源分析](../reference/resource-profiling.md)的测试结果用于确定 K3s Agent、具有工作负载的 K3s Server 和具有一个 Agent 的 K3s Server 的最低资源要求。它还包含了有关对 K3s Server 和 Agent 利用率产生最大影响的分析，以及如何保护集群数据存储免受 Agent 和工作负载的干扰。
 
 #### 磁盘
 
@@ -47,10 +60,15 @@ K3s Server 需要 6443 端口才能被所有节点访问。
 
 如果你计划使用嵌入式 etcd 来实现高可用性，则 Server 节点必须可以在端口 2379 和 2380 上相互访问。
 
-> **重要提示**：节点上的 VXLAN 端口会开放集群网络，让任何人均能访问集群。因此，不要将 VXLAN 端口暴露给外界。请使用禁用 8472 端口的防火墙/安全组来运行节点。
-> **警告：** Flannel 依赖 [Bridge CNI 插件](https://www.cni.dev/plugins/current/main/bridge/)来创建交换流量的 L2 网络。具有 NET_RAW 功能的 Rogue pod 可以滥用该 L2 网络来发动攻击，如 [ARP 欺骗](https://static.sched.com/hosted_files/kccncna19/72/ARP%20DNS%20spoof.pdf)。因此，如 [Kubernetes 文档](https://kubernetes.io/docs/concepts/security/pod-security-standards/)所述，请设置一个受限配置文件，在不可信任的 Pod 上禁用 NET_RAW。
+:::tip 重要提示
+节点上的 VXLAN 端口会开放集群网络，让任何人均能访问集群。因此，不要将 VXLAN 端口暴露给外界。请使用禁用 8472 端口的防火墙/安全组来运行节点。
+:::
 
-<figcaption>K3s Server 节点的入站规则</figcaption>
+:::warning
+Flannel 依赖 [Bridge CNI 插件](https://www.cni.dev/plugins/current/main/bridge/)来创建交换流量的 L2 网络。具有 `NET_RAW` 功能的 Rogue pod 可以滥用该 L2 网络来发动攻击，如 [ARP 欺骗](https://static.sched.com/hosted_files/kccncna19/72/ARP%20DNS%20spoof.pdf)。因此，如 [Kubernetes 文档](https://kubernetes.io/docs/concepts/security/pod-security-standards/)所述，请设置一个受限配置文件，在不可信任的 Pod 上禁用 `NET_RAW`。
+:::
+
+### K3s Server 节点的入站规则
 
 | 协议 | 端口 | 源 | 目标 | 描述 |
 |----------|-----------|-----------|-------------|------------
@@ -62,6 +80,8 @@ K3s Server 需要 6443 端口才能被所有节点访问。
 | UDP | 51821 | 所有节点 | 所有节点 | 只有使用 IPv6 的 Flannel Wireguard 才需要 |
 
 所有出站流量通常都是允许的。
+
+你可能需要根据使用的操作系统对防火墙进行其他更改。有关更多信息，请参阅[其他操作系统准备](../advanced/advanced.md#其他操作系统准备)。
 
 ## 大型集群
 

@@ -11,40 +11,25 @@ import TabItem from '@theme/TabItem';
 
 本文描述了用于运行和管理 K3s 的高级设置，以及为 K3s 准备主机操作系统所需的步骤。
 
-## 证书轮换
+## 证书管理
 
-### 自动轮换
-默认情况下，K3s 中的证书在 12 个月后过期。
+### CA 证书
 
-如果证书已经过期或剩余的时间不足 90 天，则在 K3s 重启时轮换证书。
+K3s 在第一个 Server 节点启动时生成自签名 CA 证书。这些 CA 证书的有效期为 10 年，不会自动更新。
 
-### 手动轮换
+有关使用自定义 CA 证书或更新自签名 CA 证书的信息，请参阅 [`k3s certificate rotate-ca` 命令文档](../cli/certificate.md#certificate-authority-ca-certificates)。
 
-要手动轮换证书，请使用 `k3s certificate rotate` 子命令：
+### 客户端和服务器证书
 
-```bash
-# Stop K3s
-systemctl stop k3s
-# Rotate certificates
-k3s certificate rotate
-# Start K3s
-systemctl start k3s
-```
+K3s 客户端和服务器证书自颁发日起 365 天内有效。每次启动 K3s 时，已过期或 90 天内过期的证书都会自动更新。
 
-你可以通过指定证书名称来轮换单个或多个证书：
+有关手动轮换客户端和服务器证书的信息，请参阅 [`k3s certificate rotate` 命令文档](../cli/certificate.md#client-and-server-certificates)。
 
-```bash
-k3s certificate rotate --service <SERVICE>,<SERVICE>
-```
+## Token 管理
 
-可以轮换的证书：`admin`、`api-server`、`controller-manager`、`scheduler`、`k3s-controller`, `k3s-server`, `cloud-controller`, `etcd`, `auth-proxy`, `kubelet`，`kube-proxy`。
-
-
-## 自动部署清单
-
-在 `/var/lib/rancher/k3s/server/manifests` 中找到的任何文件都会以类似 `kubectl apply` 的方式自动部署到 Kubernetes，在启动和在磁盘上更改文件时也是一样。删除该目录的文件不会同时删除集群中相应的资源。
-
-有关部署 Helm Chart 的更多信息，请参阅 [Helm](../helm/helm.md) 部分。
+默认情况下，K3s 为 Server 和 Agent 使用单个静态 Token。创建集群后不能更改此 Token。
+你可以启用只能用于加入 Agent 的第二个静态 Token，或创建自动过期的临时 `kubeadm` 联接样式 Token。
+有关详细信息，请参阅 [`k3s token` 命令文档](../cli/token.md)。
 
 ## 配置 HTTP 代理
 
@@ -152,6 +137,7 @@ K3s 会在 `/var/lib/rancher/k3s/agent/etc/containerd/config.toml` 中为 contai
 如果要对这个文件进行高级定制，你可以在同一目录中创建另一个名为 `config.toml.tmpl` 的文件，此文件将会代替默认设置。
 
 `config.toml.tmpl` 是一个 Go 模板文件，并且 `config.Node` 结构会被传递给模板。有关如何使用该结构自定义配置文件的 Linux 和 Windows 示例，请参阅[此文件夹](https://github.com/k3s-io/k3s/blob/master/pkg/agent/templates)。
+config.Node golang 结构定义在[这里](https://github.com/k3s-io/k3s/blob/master/pkg/daemons/config/types.go#L37)。
 
 ## NVIDIA 容器运行时支持
 
@@ -273,7 +259,7 @@ rootlesskit 和 slirp4nets 使用的一些配置可以通过环境变量来设�
 
 ## 节点标签和污点
 
-K3s Agent 可以通过 `--node-label` 和 `--node-taint` 选项来配置，它们会为 kubelet 添加标签和污点。这两个选项仅在[注册时](../reference/agent-config.md#agent-的节点标签和污点)添加标签和/或污点，因此只能在节点首次加入集群时设置。
+K3s Agent 可以通过 `--node-label` 和 `--node-taint` 选项来配置，它们会为 kubelet 添加标签和污点。这两个选项仅在[注册时](../cli/agent.md#agent-的节点标签和污点)添加标签和/或污点，因此只能在节点首次加入集群时设置。
 
 当前所有的 Kubernetes 版本都限制节点注册到带有 `kubernetes.io` 和 `k8s.io` 前缀的大部分标签，特别是 `kubernetes.io/role` 标签。如果你尝试启动带有不允许的标签的节点，K3s 将无法启动。正如 Kubernetes 作者所说：
 
@@ -316,11 +302,37 @@ K3s 具有一个可以正常运行的 iptables (v1.8.8) 版本。你可以通过
 systemctl disable firewalld --now
 ```
 
+如果要保持启用 firewalld，默认情况下需要以下规则：
+```bash
+firewall-cmd --permanent --add-port=6443/tcp #apiserver
+firewall-cmd --permanent --zone=trusted --add-source=10.42.0.0/16 #pods
+firewall-cmd --permanent --zone=trusted --add-source=10.43.0.0/16 #services
+firewall-cmd --reload
+```
+
+你可能还需要打开其他端口。有关详细信息，请参阅[入站规则](../installation/requirements.md#k3s-server-节点的入站规则)。如果更改了 pod 或服务的默认 CIDR，则需要相应地更新防火墙规则。
+
 如果启用，则需要禁用 nm-cloud-setup 并重新启动节点：
 ```bash
 systemctl disable nm-cloud-setup.service nm-cloud-setup.timer
 reboot
 ```
+
+### Ubuntu
+
+建议关闭 ufw（不复杂的防火墙）：
+```bash
+ufw disable
+```
+
+如果要保持启用 ufw，默认情况下需要以下规则：
+```bash
+ufw allow 6443/tcp #apiserver
+ufw allow from 10.42.0.0/16 to any #pods
+ufw allow from 10.43.0.0/16 to any #services
+```
+
+你可能还需要打开其他端口。有关详细信息，请参阅[入站规则](../installation/requirements.md#k3s-server-节点的入站规则)。如果更改了 pod 或服务的默认 CIDR，则需要相应地更新防火墙规则。
 
 ### Raspberry Pi
 
@@ -345,32 +357,11 @@ sudo apt install linux-modules-extra-raspi
 <Tabs>
 <TabItem value="K3d" default>
 
-[k3d](https://github.com/k3d-io/k3d) 是一个用于在 Docker 中轻松运行 K3s 的实用程序。
+[k3d](https://github.com/k3d-io/k3d) 是一个用于在 Docker 中轻松运行多节点 K3s 集群的实用程序。
 
-你可以使用 MacOS 上的 [brew](https://brew.sh/) 实用程序来安装它：
+K3d 能让你轻松在 Docker 中创建单节点和多节点 K3s 集群（例如 Kubernetes 上的本地开发）。
 
-```bash
-brew install k3d
-```
-
-</TabItem>
-<TabItem value="Docker Compose">
-
-K3s repo 中的 `docker-compose.yml` 是一个[示例](https://github.com/k3s-io/k3s/blob/master/docker-compose.yml)，介绍了如何从 Docker 运行 K3s。要在这个 repo 中运行 `docker-compose`，运行：
-
-```bash
-docker-compose up --scale agent=3
-# kubeconfig is written to current dir
-
-kubectl --kubeconfig kubeconfig.yaml get node
-
-NAME           STATUS   ROLES    AGE   VERSION
-497278a2d6a2   Ready    <none>   11s   v1.13.2-k3s2
-d54c8b17c055   Ready    <none>   11s   v1.13.2-k3s2
-db7a5a5a5bdd   Ready    <none>   12s   v1.13.2-k3s2
-```
-
-要仅在 Docker 中运行 Agent，请使用 `docker-compose up agent`。
+有关如何安装和使用 K3d 的更多信息，请参阅[安装](https://k3d.io/#installation)文档。
 
 </TabItem>
 <TabItem value="Docker">
@@ -380,12 +371,23 @@ db7a5a5a5bdd   Ready    <none>   12s   v1.13.2-k3s2
 
 ```bash
 sudo docker run \
-  -d --tmpfs /run \
-  --tmpfs /var/run \
-  -e K3S_URL=${SERVER_URL} \
-  -e K3S_TOKEN=${NODE_TOKEN} \
-  --privileged rancher/k3s:vX.Y.Z
+  --privileged \
+  --name k3s-server-1 \
+  --hostname k3s-server-1 \
+  -p 6443:6443 \
+  -d rancher/k3s:v1.24.10-k3s1 \
+  server
 ```
+:::note
+你必须指定一个有效的 K3s 版本作为标签；我们未维护 `latest` 标签。  
+Docker 镜像不支持在标签中使用 `+` 符号，因此，请在标签中使用 `-` 符号。
+:::
+
+K3s 运行后，你可以将 admin kubeconfig 从 Docker 容器中复制出来：
+```bash
+sudo docker cp k3s-server-1:/etc/rancher/k3s/k3s.yaml ~/.kube/config
+```
+
 </TabItem>
 </Tabs>
 
@@ -428,7 +430,7 @@ yum install -y https://rpm.rancher.io/k3s/latest/common/centos/7/noarch/k3s-seli
 selinux: true
 ```
 
-不支持在 SELinux 下使用自定义 `--data-dir`。要自定义它，你可能需要自行编写自定义策略。如需指导，你可以参考 [containers/container-selinux](https://github.com/containers/container-selinux) 仓库，仓库包含 Container Runtime 的 SELinux 策略文件，同时你可以参考 [rancher/k3s-selinux](https://github.com/k3s-io/k3s-selinux) 仓库，该仓库包含 K3s 的 SELinux 策略。
+不支持在 SELinux 下使用自定义 `--data-dir`。要自定义它，你可能需要自行编写自定义策略。如需指导，你可以参考 [containers/container-selinux](https://github.com/containers/container-selinux) 仓库，仓库包含 Container Runtime 的 SELinux 策略文件，同时你可以参考 [rancher/k3s-selinux](https://github.com/rancher/k3s-selinux) 仓库，该仓库包含 K3s 的 SELinux 策略。
 
 ## 启用 eStargz 的 Lazy Pulling（实验性）
 
@@ -499,19 +501,17 @@ helm install --create-namespace -n cattle-logging-system rancher-logging --set a
 
 支持记录网络策略丢弃的数据包。数据包被发送到 iptables NFLOG 操作，它显示了数据包的详细信息，包括阻止它的网络策略。
 
-要将 NFLOG 转换为日志条目，请安装 ulogd2 并将 `[log1]` 配置为在 `group=100` 上读取。然后，重启 ulogd2 服务以提交新配置。
+如果流量很大，日志消息的数量可能会非常多。要在每个策略上控制日志速率，你可以在 question 的网络策略中添加以下注释，从而设置 `limit` 和 `limit-burst` iptables 参数：
+* `kube-router.io/netpol-nflog-limit=<LIMIT-VALUE>`
+* `kube-router.io/netpol-nflog-limit-burst=<LIMIT-BURST-VALUE>`
 
-也可以使用 tcpdump 读取命中 NFLOG 操作的数据包：
+默认值为 `limit=10/minute` 和 `limit-burst=10`。你可以查看 [iptables 手册](https://www.netfilter.org/documentation/HOWTO/packet-filtering-HOWTO-7.html#:~:text=restrict%20the%20rate%20of%20matches)以进一步了解这些字段的格式和可选值。
+
+要将 NFLOG 数据包转换为日志条目，请安装 ulogd2 并将 `[log1]` 配置为在 `group=100` 上读取。然后，重启 ulogd2 服务以提交新配置。
+当数据包被网络策略规则阻止时，日志消息将出现在 `/var/log/ulog/syslogemu.log` 中。
+
+发送到 NFLOG netlink 套接字的数据包也可以使用 tcpdump 或 tshark 等命令行工具读取：
 ```bash
 tcpdump -ni nflog:100
 ```
-但是请注意，在这种情况下，不会显示阻止数据包的网络策略。
-
-
-当数据包被网络策略规则阻止时，日志消息将出现在 `/var/log/ulog/syslogemu.log` 中。如果流量很大，日志文件可能会增长得非常快。为了控制它，你可以向相关网络策略添加以下注释，从而设置 `limit` 和 `limit-burst` iptables 参数：
-```bash
-* kube-router.io/netpol-nflog-limit=<LIMIT-VALUE>
-* kube-router.io.io/netpol-nflog-limit-burst=<LIMIT-BURST-VALUE>
-```
-
-默认值为 `limit=10/minute` 和 `limit-burst=10`。你可以查看 iptables 手册以进一步了解这些字段的格式和可选值。
+虽然更容易获得，但 tcpdump 不会显示阻止数据包的网络策略的名称。你可以使用 wireshark 的 tshark 命令来显示完整的 NFLOG 数据包标头，其中包括包含了策略名称的 `nflog.prefix` 字段。

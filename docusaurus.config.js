@@ -11,9 +11,15 @@ module.exports = {
   organizationName: 'k3s-io', // Usually your GitHub org/user name.
   projectName: 'docs', // Usually your repo name.
   trailingSlash: false,
+  markdown: {
+    mermaid: true,
+  },
+  themes: [
+    '@docusaurus/theme-mermaid'
+  ],
   i18n: {
     defaultLocale: "en",
-    locales: ["en", "zh", "ja"],
+    locales: ["en", "zh", "ja", "kr"],
     localeConfigs: {
       en: {
         label: "English",
@@ -24,12 +30,17 @@ module.exports = {
       ja: {
         label: "日本語",
       },
+      kr: {
+        label: "한국어",
+      },
     },
   },
   themeConfig: {
     colorMode: {
       // "light" | "dark"
       defaultMode: "light",
+      // Use user preference instead of default mode
+      respectPrefersColorScheme: true,
 
       // Hides the switch in the navbar
       // Useful if you want to support a single color mode

@@ -22,7 +22,7 @@ import TabItem from '@theme/TabItem';
 
 ## 手动部署镜像
 
-我们假设你已经在离线环境中创建了节点。
+我们假设你已经在离线环境中创建了节点并使用 Containerd 作为容器运行时。
 此方法需要你手动将必要的镜像部署到每个节点，适用于无法运行私有镜像仓库的边缘部署。
 
 ### 准备镜像目录和 K3s 二进制文件
@@ -35,9 +35,7 @@ sudo mkdir -p /var/lib/rancher/k3s/agent/images/
 sudo cp ./k3s-airgap-images-$ARCH.tar /var/lib/rancher/k3s/agent/images/
 ```
 
-将 K3s 二进制文件放在 `/usr/local/bin/k3s` 中，并确保文件是可执行的。
-
-按照下一节中的步骤安装 K3s。
+完成此操作后，你现在可以转到下面的[安装 K3s](#安装-k3s) 部分。
 
 ## 安装 K3s
 
@@ -45,7 +43,8 @@ sudo cp ./k3s-airgap-images-$ARCH.tar /var/lib/rancher/k3s/agent/images/
 
 - 在安装 K3s 之前，完成上面的[私有镜像仓库](#私有镜像仓库)或[手动部署镜像](#手动部署镜像)操作，预填充 K3s 需要安装的镜像。
 - 从 [Releases](https://github.com/k3s-io/k3s/releases) 页面下载 K3s 二进制文件，该文件需要匹配用于获取离线镜像的版本。将二进制文件放在每个离线节点上的 `/usr/local/bin` 中，并确保文件是可执行的。
-- 在 https://get.k3s.io 下载 K3s 安装脚本。将安装脚本放在每个离线节点上的任何位置，并将其命名为 `install.sh`。
+- 在 [get.k3s.io](https://get.k3s.io) 下载 K3s 安装脚本。将安装脚本放在每个离线节点上的任何位置，并将其命名为 `install.sh`。
+- K3s 需要一个默认路由来自动检测节点的主 IP，并使 kube-proxy ClusterIP 路由正常运行。因此，即使路由是虚拟或黑洞路由，你也必须在每个节点上配置默认路由。
 
 使用 `INSTALL_K3S_SKIP_DOWNLOAD` 环境变量运行 K3s 脚本时，K3s 将使用脚本的本地版本和二进制文件。
 
@@ -63,34 +62,43 @@ sudo cp ./k3s-airgap-images-$ARCH.tar /var/lib/rancher/k3s/agent/images/
 INSTALL_K3S_SKIP_DOWNLOAD=true ./install.sh
 ```
 
-然后，如果要添加其他 Agent，请在每个 Agent 节点上执行以下操作。请确保将 `myserver` 替换为服务器的 IP 或有效 DNS，并将 `mynodetoken` 替换为服务器的节点令牌（通常位于 `/var/lib/ rancher/k3s/server/node-token`）。
+要添加其他 Agent，请在每个 Agent 节点上执行以下操作。
 
 ```bash
-INSTALL_K3S_SKIP_DOWNLOAD=true K3S_URL=https://myserver:6443 K3S_TOKEN=mynodetoken ./install.sh
+INSTALL_K3S_SKIP_DOWNLOAD=true K3S_URL=https://<SERVER_IP>:6443 K3S_TOKEN=<YOUR_TOKEN> ./install.sh
 ```
+
+:::note
+Server 的 Token 通常位于 `/var/lib/rancher/k3s/server/token`。
+:::
 
 </TabItem>
 <TabItem value="高可用配置" default>
 
-参考[具有外部数据库的高可用](ha.md)或[具有嵌入式数据库的高可用](ha-embedded.md)指南。你需要调整安装命令来指定 `INSTALL_K3S_SKIP_DOWNLOAD=true`，并在本地运行安装脚本，而不是使用 curl。你还将使用 `INSTALL_K3S_EXEC='args'` 为 K3s 提供参数。
+参考[具有外部数据库的高可用](../datastore/ha.md)或[具有嵌入式数据库的高可用](../datastore/ha-embedded.md)指南。你需要调整安装命令来指定 `INSTALL_K3S_SKIP_DOWNLOAD=true`，并在本地运行安装脚本，而不是使用 curl。你还将使用 `INSTALL_K3S_EXEC='args'` 为 K3s 提供参数。
 
 例如，具有外部数据库的高可用指南的第二步提到了以下内容：
 
 ```bash
 curl -sfL https://get.k3s.io | sh -s - server \
-  --datastore-endpoint='mysql://username:password@tcp(hostname:3306)/database-name'
+  --token=SECRET \
+  --datastore-endpoint="mysql://username:password@tcp(hostname:3306)/database-name"
 ```
 
 你需要修改此类示例，如下所示：
 
 ```bash
-INSTALL_K3S_SKIP_DOWNLOAD=true INSTALL_K3S_EXEC='server' K3S_DATASTORE_ENDPOINT='mysql://username:password@tcp(hostname:3306)/database-name' ./install.sh
+INSTALL_K3S_SKIP_DOWNLOAD=true INSTALL_K3S_EXEC='server --token=SECRET' \
+K3S_DATASTORE_ENDPOINT='mysql://username:password@tcp(hostname:3306)/database-name' \
+./install.sh
 ```
 
 </TabItem>
 </Tabs>
 
-> **注意**：K3s 还为 kubelet 提供了一个 `--resolv-conf` 标志，这可能有助于在离线网络中配置 DNS。
+:::note
+K3s 还为 kubelet 提供了一个 `--resolv-conf` 标志，有助于在离线网络中配置 DNS。
+:::
 
 ## 升级
 
@@ -105,7 +113,7 @@ INSTALL_K3S_SKIP_DOWNLOAD=true INSTALL_K3S_EXEC='server' K3S_DATASTORE_ENDPOINT=
 
 ### 自动升级
 
-从 v1.17.4+k3s1 开始，K3s 支持[自动升级](../upgrades/automated.md)。要在离线环境中启用此功能，你必须确保所需的镜像在你的私有镜像仓库中可用。
+K3s 支持[自动升级](../upgrades/automated.md)。要在离线环境中启用此功能，你必须确保所需的镜像在你的私有镜像仓库中可用。
 
 你将需要与你打算升级到的 K3s 版本相对应的 rancher/k3s-upgrade 版本。注意，镜像标签将 K3s 版本中的 `+` 替换为 `-`，因为 Docker 镜像不支持 `+`。
 

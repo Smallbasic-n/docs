@@ -33,9 +33,24 @@ mirrors:
 
 每个 mirror 都必须有一个名称和一组端点。从镜像仓库中拉取镜像时，containerd 会逐个尝试这些端点 URL，并使用第一个有效的 URL。
 
-#### 重写
+#### 重定向
 
-每个镜像都可以有一组重写。重写可以根据正则表达式来改变镜像的标签。如果 mirror 仓库中的组织/项目结构与上游不同，这将很有用。
+如果将公共镜像仓库用作 Mirror，例如在配置[通过缓存拉取](https://docs.docker.com/registry/recipes/mirror/)时，镜像拉取将被透明地重定向。
+
+例如，如果你为 `docker.io` 配置了一个 Mirror：
+
+```yaml
+mirrors:
+  docker.io:
+    endpoint:
+      - "https://mycustomreg.com:5000"
+```
+
+然后，拉取 `docker.io/rancher/coredns-coredns:1.6.3` 将透明地从 `https://mycustomreg.com:5000/rancher/coredns-coredns:1.6.3` 拉取镜像。
+
+#### Rewrites
+
+每个 Mirror 都可以有一组 rewrites。Rewrites 可以根据正则表达式来改变镜像的标签。如果 mirror 仓库中的组织/项目结构与上游不同，这将很有用。
 
 例如，以下配置将透明地从 `registry.example.com:5000/mirrorproject/rancher-images/coredns-coredns:1.6.3` 中拉取镜像 `docker.io/rancher/coredns-coredns:1.6.3`：
 
